@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: #1a1613;
+  color: #241f1a;
+  font-family: 'PingFang SC', 'Noto Sans SC', 'Source Han Sans SC', sans-serif;
+}
+
+button,
+select {
+  touch-action: manipulation;
+}
+
+@keyframes battle-number {
+  from {
+    transform: translate(-50%, -20%);
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -160%);
+    opacity: 0.15;
+  }
+}
+
+.battle-summon-unit {
+  animation: battle-summon-unit var(--summon-ms, 500ms) ease-out both;
+}
+
+.battle-summon-spiral {
+  transform-origin: center;
+  animation: battle-summon-spin var(--summon-ms, 500ms) linear both;
+}
+
+.battle-summon-stroke {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: battle-summon-draw var(--summon-ms, 500ms) ease-out both;
+}
+
+@keyframes battle-summon-unit {
+  from {
+    transform: rotate(-360deg) scale(0.05);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes battle-summon-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+    opacity: 0.2;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(540deg) scale(0.28);
+    opacity: 0;
+  }
+}
+
+@keyframes battle-summon-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle-summon-unit,
+  .battle-summon-spiral,
+  .battle-summon-stroke {
+    animation: none;
+  }
+
+  .battle-summon-spiral {
+    opacity: 0;
+  }
+}
