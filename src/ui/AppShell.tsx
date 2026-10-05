@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { getGold, isIdling, notePresence, settleOfflineReturn, subscribeGold } from '../data/player'
+import { APP_VERSION } from 'virtual:app-version'
 import { OfflineSettlement } from './OfflineSettlement'
 
 /** 前台时刷新在线时间的间隔。用来区分真的离线 */
@@ -51,7 +52,7 @@ export function AppShell() {
 }
 
 /**
- * 顶部资源。左边是金币，不在首页时右边可以回到首页。回到首页不会把正在打的战斗停掉。
+ * 顶部资源。左边是金币。只有首页右边显示版本号；离开首页后右边改成回到首页。回到首页不会把正在打的战斗停掉。
  *
  * @returns 资源栏
  */
@@ -65,7 +66,11 @@ function ResourceBar() {
         <span className="text-xs tracking-wide text-[#c8b49a]">金币</span>
         <span className="text-sm font-semibold tabular-nums">{gold}</span>
       </div>
-      {atHome ? null : (
+      {atHome ? (
+        <span className="text-xs tabular-nums text-[#c8b49a]" aria-label={`版本 ${APP_VERSION}`}>
+          v{APP_VERSION}
+        </span>
+      ) : (
         <Link to="/" className="text-sm text-[#f4efe6]">
           回到首页
         </Link>

@@ -2,3 +2,14 @@ node_modules
 dist
 .DS_Store
 *.local
+
+# Android 打包产物和本机 SDK 路径。工程源码保留，这些每次打包会再生
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/capacitor-cordova-android-plugins
+android/app/src/main/assets/public
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+*.apk
