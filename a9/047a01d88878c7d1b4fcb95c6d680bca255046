@@ -1,0 +1,92 @@
+src/data/nav.ts
+  s_663b6bb83c9e36::t_24b1fd326e2c02 6
+src/pages/DeckPage.tsx
+  s_663b6bb83c9e36::t_6ea84adacf1941 46-50
+  s_663b6bb83c9e36::t_6308eb9df30491 4
+  s_663b6bb83c9e36::t_5f990a870b6af5 10
+src/data/wow.ts
+  s_663b6bb83c9e36::t_5294fceda3cd84 1-283
+src/realm/wowBattle.test.ts
+  s_663b6bb83c9e36::t_1abeb79f7b0173 1-104
+src/data/cardCatalog.ts
+  s_663b6bb83c9e36::t_acc36a909ccb68 28-37
+  s_663b6bb83c9e36::t_5463253e5b3b77 4,11
+src/realm/battle.ts
+  s_663b6bb83c9e36::t_f1e5ccb14f2c18 899-900,909-913
+  s_663b6bb83c9e36::t_fe22e05730389b 532
+  s_663b6bb83c9e36::t_081ab0ceadbdd5 549-551
+  s_663b6bb83c9e36::t_7ac1afeb808898 579-588
+  s_663b6bb83c9e36::t_1de3664edf6c4b 631,639-641
+src/data/cards.ts
+  s_663b6bb83c9e36::t_d49830ec462d59 204-205,227-229
+  s_663b6bb83c9e36::t_0287212b5d25f9 74,77
+  s_663b6bb83c9e36::t_9c72a0d0416894 85-96
+src/data/playerDb.ts
+  s_663b6bb83c9e36::t_31ba92c89ab851 36-39
+  s_663b6bb83c9e36::t_3a662ba8bf8e4e 221-234
+  s_663b6bb83c9e36::t_7a5cf5bf8145ac 112-113
+src/data/cardType.test.ts
+  s_663b6bb83c9e36::t_e5211262e2a721 37-41
+  s_663b6bb83c9e36::t_552bfabba7e96e 19-23
+src/data/cardCatalog.test.ts
+  s_663b6bb83c9e36::t_c8411bddac0729 13-14
+src/data/cardType.ts
+  s_663b6bb83c9e36::t_147c1e9d602512 37,41-51
+src/ui/UnitCard.tsx
+  s_663b6bb83c9e36::t_18b806c50a5620 8,13,16,29-32,46-54
+  s_663b6bb83c9e36::t_702b6a8092fb43 64-86
+src/data/furnace.ts
+  s_663b6bb83c9e36::t_a036eb63667366 1-187
+src/App.tsx
+  s_663b6bb83c9e36::t_f23b774492e517 7
+  s_663b6bb83c9e36::t_7fe42e9b32a56e 27
+src/data/player.ts
+  s_663b6bb83c9e36::t_94acd100972961 625-661
+  s_663b6bb83c9e36::t_e4e96911239b9f 86-89
+  s_663b6bb83c9e36::t_19a3fc2e466507 149-156
+  s_663b6bb83c9e36::t_0fe9ea948f6d73 114-115
+  s_663b6bb83c9e36::t_9e0ed188175c9f 514-515
+  s_663b6bb83c9e36::t_a705c840a85a8f 263-326
+  s_663b6bb83c9e36::t_522b4c92de6fdc 2,5
+  s_663b6bb83c9e36::t_6387d70f5db489 93-96
+  s_663b6bb83c9e36::t_cd50cd1f9cf660 575
+  s_663b6bb83c9e36::t_920013e5faa760 597-598
+  s_663b6bb83c9e36::t_1e82e20debd04e 525-526
+src/ui/AppShell.tsx
+  s_663b6bb83c9e36::t_1ed2c35ca652ba 3
+  s_663b6bb83c9e36::t_f67c8490229f69 58,64,68-78
+  s_663b6bb83c9e36::t_22721898bdcae1 106-119
+src/data/player.test.ts
+  s_663b6bb83c9e36::t_60516ec921b288 2
+  s_663b6bb83c9e36::t_732040f86bf7ef 126-127
+  s_663b6bb83c9e36::t_5b8354ea580765 174-196,199,202-206,208
+  s_663b6bb83c9e36::t_920deb839b9c70 197-198,200-201,207
+  s_663b6bb83c9e36::t_9f50ab62fc1d33 6-7
+src/data/furnace.test.ts
+  s_663b6bb83c9e36::t_00c0ca5cf218a1 1-39
+src/pages/CardDetailPage.tsx
+  s_663b6bb83c9e36::t_5d86094c603ee5 10
+  s_663b6bb83c9e36::t_0a1aee3b4f59c3 54
+src/data/skills.test.ts
+  s_663b6bb83c9e36::t_162da7589f9436 24-26
+  s_663b6bb83c9e36::t_4ea790b7b37290 59-68
+src/pages/FurnacePage.tsx
+  s_663b6bb83c9e36::t_71c554bfa0cd74 1-2,4-265
+  s_663b6bb83c9e36::t_714cd97cda1b91 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.45-trip",
+  "base_commit_sha": "a9047a01d88878c7d1b4fcb95c6d680bca255046",
+  "prompts": {},
+  "sessions": {
+    "s_663b6bb83c9e36": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "184f3b4d-658f-4dcf-9a5c-e407c898f054",
+        "model": "grok-4.7"
+      },
+      "human_author": "ynanxu <ynanxu@trip.com>"
+    }
+  }
+}
