@@ -1,0 +1,21 @@
+android/app/build.gradle
+  s_663b6bb83c9e36::t_ba15af782165da 10-11
+package.json
+  s_663b6bb83c9e36::t_c6fd8d90c96043 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.45-trip",
+  "base_commit_sha": "1f5cf8753242c9defb942e4de7a7b7321faba2f8",
+  "prompts": {},
+  "sessions": {
+    "s_663b6bb83c9e36": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "184f3b4d-658f-4dcf-9a5c-e407c898f054",
+        "model": "grok-4.7"
+      },
+      "human_author": "ynanxu <ynanxu@trip.com>"
+    }
+  }
+}
