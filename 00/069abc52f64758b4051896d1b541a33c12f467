@@ -1,0 +1,34 @@
+src/pages/HomePage.tsx
+  s_663b6bb83c9e36::t_1f14663d4eeba7 5
+  s_663b6bb83c9e36::t_9e38664c184356 15
+src/pages/RealmBattlePage.tsx
+  s_663b6bb83c9e36::t_c531bcc069ac84 77
+  s_663b6bb83c9e36::t_bd02dce0cc50b7 7-8
+  s_663b6bb83c9e36::t_dcbb979dad242b 99-104
+  s_663b6bb83c9e36::t_9d90fbfe0c14d2 120,125-129
+  s_663b6bb83c9e36::t_89d145f57142c7 122
+  s_663b6bb83c9e36::t_35797ccb8f08c4 59-63
+  s_663b6bb83c9e36::t_6f5510d95a6b2d 114-119,121,123-124,130-134
+  s_663b6bb83c9e36::t_ec279c82e191b4 174
+src/realm/battleSession.ts
+  s_663b6bb83c9e36::t_e8025a6d40ed9b 63-72
+  s_663b6bb83c9e36::t_e089ea1b81e922 165
+src/realm/battleSession.test.ts
+  s_663b6bb83c9e36::t_abfe2581c96495 2,4-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.45-trip",
+  "base_commit_sha": "00069abc52f64758b4051896d1b541a33c12f467",
+  "prompts": {},
+  "sessions": {
+    "s_663b6bb83c9e36": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "184f3b4d-658f-4dcf-9a5c-e407c898f054",
+        "model": "grok-4.7"
+      },
+      "human_author": "ynanxu <ynanxu@trip.com>"
+    }
+  }
+}
