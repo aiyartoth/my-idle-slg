@@ -6,6 +6,7 @@ import { BOARD_SIZE, type TileKind } from '../realm/board'
 import { RARITY_TEXT_CLASS, RARITY_TEXT_ON_DARK_CLASS, skillLine } from '../data/cards'
 import { formatLoot, type RealmLoot } from '../data/drops'
 import { ensureRealmBattle, exitBattle, getSession, markBattleSettled, retainBattleView, subscribeSession } from '../realm/battleSession'
+import { DeckLimitNotices } from '../ui/DeckLimitNotices'
 import { REALMS, type RealmInfo } from '../realm/yellowTurban'
 
 /** 沿一格滑动的时间。移动力最多 2，两格走完仍赶在下一名兵行动之前 */
@@ -37,6 +38,7 @@ export default function RealmBattlePage() {
 
 /**
  * 一场秘境自动打完。下方是我方还在冷却的牌，日志收在右上角。
+ * 卡组不合规时不开打，只留下限制提示。
  *
  * @param props.realm 当前秘境
  * @returns 战斗场面
@@ -46,10 +48,24 @@ function RealmBattle({ realm }: { realm: RealmInfo }) {
   const session = useSyncExternalStore(subscribeSession, getSession)
   const [logOpen, setLogOpen] = useState(false)
   const [settledStamp, setSettledStamp] = useState(-1)
+  const [blocked, setBlocked] = useState<string[]>([])
   useEffect(() => {
-    ensureRealmBattle(realm.id)
+    setBlocked(ensureRealmBattle(realm.id))
     return retainBattleView()
   }, [realm.id])
+  if (blocked.length > 0) {
+    return (
+      <div className="px-4 py-4">
+        <DeckLimitNotices messages={blocked} />
+        <Link to="/deck" className="text-sm text-[#c8b49a]">
+          前往卡组
+        </Link>
+        <Link to="/realm" className="mt-3 block text-sm text-[#c8b49a]">
+          返回秘境
+        </Link>
+      </div>
+    )
+  }
   if (session.status === 'idle' || session.realmId !== realm.id) {
     return <p className="px-4 py-4 text-sm text-[#c8b49a]">正在进入战场。</p>
   }

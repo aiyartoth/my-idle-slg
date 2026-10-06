@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { BASIC_UNIT_CARDS, INFANTRY_CARD, TEMPLE_KNIGHT_CARD } from '../data/cards'
-import { keyOf, openSummonTiles } from './board'
+import { cellsOf, keyOf, manhattan, openSummonTiles } from './board'
 import { actingOrder, advanceBattle, explainStrike, stepBattle, strikeDamage, type BoardUnit } from './battle'
 import { classicRealmTiles } from './realmMap'
 import { createYellowTurbanBattle, PLAYER_BASE_HP, YELLOW_ARCHER_CARD, YELLOW_INFANTRY_CARD, YELLOW_TURBAN_BASE_HP, ZHANG_JIAO_CARD } from './yellowTurban'
@@ -257,6 +257,32 @@ describe('黄巾之乱', () => {
     const knight: BoardUnit = { uid: 'k', side: 'player', card: TEMPLE_KNIGHT_CARD, row: 3, col: 5, hp: TEMPLE_KNIGHT_CARD.hp, entered: 1 }
     const turned = advanceBattle({ ...start, turn: 1, units: [knight, behind], queue: ['k'], ...quiet })
     expect(turned.units.find((unit) => unit.uid === 'k')?.row).toBeGreaterThan(3)
+  })
+
+  it('石头和河流挡住直线时会绕路，已经能打到的远程不走出攻击范围', () => {
+    const start = yellowTurbanBattle()
+    const quiet = { playerHand: [], playerDeck: [], enemyHand: [], enemyDeck: [{ uid: 'pad', card: INFANTRY_CARD, cd: 99 }] }
+    const walker: BoardUnit = { uid: 'p', side: 'player', card: { ...INFANTRY_CARD, move: 1 }, row: 5, col: 8, hp: INFANTRY_CARD.hp, entered: 1 }
+    const bases = cellsOf(start.tiles, 'enemyBase')
+    const distance = (unit: BoardUnit | undefined) => (unit ? Math.min(...bases.map((cell) => manhattan(unit, cell))) : 99)
+    let state = advanceBattle({ ...start, turn: 1, units: [walker], queue: ['p'], ...quiet })
+    expect(state.units.find((unit) => unit.uid === 'p')).not.toMatchObject({ row: 5, col: 8 })
+    for (let step = 0; step < 40 && state.result === 'ongoing'; step += 1) {
+      const at = state.units.find((unit) => unit.uid === 'p')
+      expect(at).toBeDefined()
+      if (!at) break
+      expect(state.tiles[at.row][at.col] === 'stone' || state.tiles[at.row][at.col] === 'river').toBe(false)
+      state = advanceBattle(state)
+    }
+    expect(distance(state.units.find((unit) => unit.uid === 'p'))).toBeLessThan(distance(walker))
+
+    const archer = BASIC_UNIT_CARDS.find((card) => card.id === 'archer')
+    if (!archer) throw new Error('缺弓箭手')
+    const shooter: BoardUnit = { uid: 'a', side: 'player', card: archer, row: 5, col: 6, hp: archer.hp, entered: 1 }
+    const foe: BoardUnit = { uid: 'e', side: 'enemy', card: { ...INFANTRY_CARD, move: 0 }, row: 5, col: 9, hp: 4, entered: 2 }
+    const held = advanceBattle({ ...start, turn: 1, units: [shooter, foe], queue: ['a'], ...quiet })
+    expect(held.units.find((unit) => unit.uid === 'a')).toMatchObject({ row: 5, col: 6 })
+    expect(held.strike).toMatchObject({ attackerUid: 'a', targetUid: 'e', kind: 'damage' })
   })
 
   it('撒豆成兵在回合开始时于周围召黄巾兵，没有空位就跳过', () => {

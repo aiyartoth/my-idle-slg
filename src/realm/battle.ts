@@ -1,7 +1,7 @@
 import { SHEEP_CARD } from '../data/alliance'
 import { cardTypeLine, isMageType } from '../data/cardType'
 import type { ArmorSkillKind, AttackKind, SkillKind, UnitCardData } from '../data/cards'
-import { cellsOf, chooseRoute, keyOf, manhattan, openAround, openSummonTiles, type Coord, type TileKind } from './board'
+import { BOARD_SIZE, cellsOf, chooseRoute, keyOf, manhattan, openAround, openSummonTiles, type Coord, type TileKind } from './board'
 
 /** 开战时双方各拿进手的张数 */
 const OPENING_HAND = 3
@@ -1431,8 +1431,10 @@ function lightningAction(state: BattleState, queue: string[], uid: string): Batt
  * 这一步怎么走。有敌方嘲讽时朝最近的嘲讽走，必要时可以后退。
  * 没有敌人时朝敌方大本营推进。
  * 有敌人时尽量靠近敌人，而不是直扑大本营。
- * 普通兵不能后退：比起点更远离敌方大本营的格子不走；这样靠不近、攻击范围里也没有敌人时，才继续推进大本营。
+ * 普通兵不能后退：比起点更远离敌方大本营的格子不走；绕开石头之后仍然靠不近、攻击范围里也没有敌人时，才继续推进大本营。
  * 有警戒时可以后退，去追更靠后的那名敌人。
+ * 靠近和推进都按整张棋盘绕开石头、河流。这一步即使暂时离目标更远，只要绕过去能靠近，就先走。
+ * 已经在攻击范围内时，不走出范围去绕路。
  *
  * @param actor 正在行动的兵
  * @param units 场上的兵
@@ -1463,13 +1465,30 @@ function approachRoute(
     return chooseRoute(actor, move, tiles, blocked, [{ row: rear.row, col: rear.col }], flying)
   }
   const spots = foes.map((unit) => ({ row: unit.row, col: unit.col }))
-  const engaged = chooseRoute(actor, move, tiles, blocked, spots, flying, bases)
-  const here = Math.min(...spots.map((spot) => manhattan(actor, spot)))
-  const there = engaged[engaged.length - 1]
-  const closer = Math.min(...spots.map((spot) => manhattan(there, spot))) < here
+  const here = { row: actor.row, col: actor.col }
+  const planned = chooseRoute(actor, Number.POSITIVE_INFINITY, tiles, blocked, spots, flying, bases)
+  const engaged = planned.slice(0, Math.max(0, move) + 1)
+  const landing = engaged[engaged.length - 1]
+  const ahead = planned[planned.length - 1]
   const inRange = foes.some((unit) => manhattan(actor, unit) <= actor.card.range)
-  if (closer || inRange) return engaged
+  const leavesRange = inRange && foes.every((unit) => manhattan(landing, unit) > actor.card.range)
+  if (leavesRange) return [here]
+  if (nearestManhattan(landing, spots) < nearestManhattan(here, spots) || nearestManhattan(ahead, spots) < nearestManhattan(here, spots) || inRange) {
+    return engaged
+  }
   return chooseRoute(actor, move, tiles, blocked, bases, flying)
+}
+
+/**
+ * 到一组格子里最近的曼哈顿距离。没有目标时按棋盘边长的平方计，避免和真的靠近混在一起。
+ *
+ * @param from 起点
+ * @param goals 要比较的格子
+ * @returns 最近距离
+ */
+function nearestManhattan(from: Coord, goals: readonly Coord[]): number {
+  if (goals.length === 0) return BOARD_SIZE * BOARD_SIZE
+  return Math.min(...goals.map((goal) => manhattan(from, goal)))
 }
 
 /**

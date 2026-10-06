@@ -1,9 +1,10 @@
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import { DEFAULT_SORT_DIR, filterByRaceGroup, groupByRace, raceGroupsIn, sortDeckEntries, type DeckSortDir, type DeckSortKey } from '../data/deckSort'
-import { DECK_LIMIT, getPlayerSnapshot, releaseExtraLegends, subscribePlayer, unequipDeckCard } from '../data/player'
+import { DECK_LEGEND_RETURNED_MESSAGE, DECK_LIMIT, DECK_OVER_MESSAGE, getPlayerSnapshot, inspectDeckLimits, subscribePlayer, unequipDeckCard } from '../data/player'
 import { readCardListBrief, writeCardListBrief } from '../ui/cardListBrief'
 import { CardSortBar, RaceGroupHeading } from '../ui/CardSortBar'
+import { DeckLimitNotices } from '../ui/DeckLimitNotices'
 import { UnitCard } from '../ui/UnitCard'
 
 /**
@@ -11,7 +12,8 @@ import { UnitCard } from '../ui/UnitCard'
  * 顶部分类固定，四个分类共用一对上下箭头，箭头右侧可以换成简略。列表在下面滚动。
  * 进来时稀有度升序已经生效。详略会记住，从详情返回仍是上次的样子。
  * 选定某一个种族时，箭头改成按稀有度升降。
- * 进来时把多出来的同名传奇放回背包。箭头左边是当前张数和上限。
+ * 进来时检查卡组：多出来的同名传奇放回背包并提示，超过上限时提示下阵、不自动拿走。
+ * 箭头左边是当前张数和上限。
  *
  * @returns 卡组页
  */
@@ -21,9 +23,16 @@ export default function DeckPage() {
   const [dir, setDir] = useState<DeckSortDir>(DEFAULT_SORT_DIR)
   const [raceGroup, setRaceGroup] = useState<string | null>(null)
   const [brief, setBrief] = useState(() => readCardListBrief('deck'))
+  const [notices, setNotices] = useState<string[]>([])
+  const legendTold = useRef(false)
   useEffect(() => {
-    releaseExtraLegends()
-  }, [])
+    const found = inspectDeckLimits()
+    if (found.includes(DECK_LEGEND_RETURNED_MESSAGE)) legendTold.current = true
+    const next: string[] = []
+    if (legendTold.current) next.push(DECK_LEGEND_RETURNED_MESSAGE)
+    if (getPlayerSnapshot().deck.length > DECK_LIMIT) next.push(DECK_OVER_MESSAGE)
+    setNotices(next)
+  }, [player.deck.length])
   const raceGroups = raceGroupsIn(player.deck.map((entry) => entry.card))
   const activeRace = key === 'race' && raceGroup && raceGroups.includes(raceGroup) ? raceGroup : null
   const sorted = sortDeckEntries(activeRace ? filterByRaceGroup(player.deck, activeRace) : player.deck, activeRace ? 'rarity' : key, dir)
@@ -33,6 +42,7 @@ export default function DeckPage() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 px-4 pt-4">
         <h1 className="sr-only">卡组管理</h1>
+        <DeckLimitNotices messages={notices} />
         <CardSortBar
           sortKey={key}
           dir={dir}

@@ -1,26 +1,44 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import type { UnitCardData } from '../data/cards'
 import { formatDuration } from '../data/idle'
-import { getPlayerSnapshot, subscribePlayer, toggleRealmIdle } from '../data/player'
+import { getPlayerSnapshot, inspectDeckLimits, subscribePlayer, toggleRealmIdle } from '../data/player'
 import { STORMWIND_LEGEND_CARDS, STORMWIND_NORMAL_CARDS } from '../realm/stormwind'
 import { REALMS, YELLOW_TURBAN_ENEMY_DECK, type RealmInfo } from '../realm/yellowTurban'
+import { DeckLimitNotices } from '../ui/DeckLimitNotices'
 import { UnitCard } from '../ui/UnitCard'
 
 /**
  * 秘境列表。通关过的秘境显示最快时间，并可以挂机。
  * 名字右侧可以看敌人阵容。不展示阵容的秘境只留描述。
  * 名字下面是秘境描述。
+ * 点开放的秘境前先查卡组。有限制提示时留在列表，不开这一场。
  *
  * @returns 秘境列表页
  */
 export default function RealmListPage() {
   const player = useSyncExternalStore(subscribePlayer, getPlayerSnapshot)
+  const navigate = useNavigate()
   const [lineupId, setLineupId] = useState<string | null>(null)
+  const [notices, setNotices] = useState<string[]>([])
   const lineup = REALMS.find((realm) => realm.id === lineupId) ?? null
+  const tryEnter = (realmId: string) => {
+    const messages = inspectDeckLimits()
+    if (messages.length > 0) {
+      setNotices(messages)
+      return
+    }
+    setNotices([])
+    navigate(`/realm/${realmId}`)
+  }
   return (
     <div className="px-4 py-4">
       <h1 className="text-lg font-semibold">秘境</h1>
+      {notices.length > 0 ? (
+        <div className="mt-3">
+          <DeckLimitNotices messages={notices} />
+        </div>
+      ) : null}
       <ul className="mt-3 flex flex-col gap-3">
         {REALMS.map((realm) => {
           const progress = player.realms[realm.id]
@@ -29,11 +47,11 @@ export default function RealmListPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   {realm.open ? (
-                    <Link to={`/realm/${realm.id}`} className="block">
+                    <button type="button" className="block w-full text-left" onClick={() => tryEnter(realm.id)}>
                       <span className="text-base font-semibold">{realm.name}</span>
                       <span className="mt-1 block text-sm text-[#6d6256]">{realm.description}</span>
                       {progress ? <span className="mt-1 block text-sm text-[#8d6844]">最快通关 {formatDuration(progress.bestClearMs)}</span> : null}
-                    </Link>
+                    </button>
                   ) : (
                     <>
                       <span className="text-base font-semibold">{realm.name}</span>

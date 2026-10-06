@@ -28,6 +28,18 @@ export const ACTIVITY_LOG_LIMIT = 50
 /** 卡组张数上限。界面写成当前张数/这个数，先写死 */
 export const DECK_LIMIT = 20
 
+/** 背包使用时卡组已经放满，这张牌留在背包 */
+export const DECK_FULL_MESSAGE = '卡组已达上限'
+
+/** 进卡组或进秘境时张数已经超过上限。不自动下阵，让玩家自己挑 */
+export const DECK_OVER_MESSAGE = '卡组已达上限，请下阵多余的牌'
+
+/** 背包使用时，同名传奇已经在卡组里 */
+export const DECK_LEGEND_MESSAGE = '卡组已包含该传奇卡'
+
+/** 进卡组或进秘境时，多出来的同名传奇已经放回背包 */
+export const DECK_LEGEND_RETURNED_MESSAGE = '同名传奇已放回背包'
+
 /** 卡组里的一张牌。普通同名牌可以有多张，用 uid 区分。传奇同名只留一张 */
 export interface DeckEntry {
   uid: string
@@ -247,20 +259,21 @@ export function addMaterialToBag(materialId: string, name: string, amount = 1): 
   return item
 }
 
-/** 背包卡上阵的结果。传奇同名已在卡组时，背包里的牌不动 */
-export type BagCardUse = 'added' | 'missing' | 'legend'
+/** 背包卡上阵的结果。传奇同名已在卡组、或卡组已满时，背包里的牌不动 */
+export type BagCardUse = 'added' | 'missing' | 'legend' | 'full'
 
 /**
  * 使用背包里的卡牌，取一张加入卡组。材料不能上阵。
- * 同名传奇已经在卡组里时不加入。
+ * 同名传奇已经在卡组里时不加入。卡组达到上限时也不加入。
  *
  * @param itemId 背包道具 id
- * @returns added 已上阵，missing 没有这张牌，legend 卡组里已有同名传奇
+ * @returns added 已上阵，missing 没有这张牌，legend 卡组里已有同名传奇，full 卡组已满
  */
 export function useBagCard(itemId: string): BagCardUse {
   const item = bag.find((entry) => entry.id === itemId)
   if (!item || item.kind !== 'card' || item.count < 1) return 'missing'
   if (isLegendCard(item.card) && deck.some((entry) => entry.card.id === item.card.id)) return 'legend'
+  if (deck.length >= DECK_LIMIT) return 'full'
   if (item.count === 1) bag = bag.filter((entry) => entry.id !== itemId)
   else bag = bag.map((entry) => (entry.id === itemId && entry.kind === 'card' ? { ...entry, count: entry.count - 1 } : entry))
   deck = [...deck, { uid: `d${deckSeq++}`, card: item.card }]
@@ -291,6 +304,20 @@ export function releaseExtraLegends(): number {
   extra.forEach((entry) => gainCards(entry.card, 1))
   emit()
   return extra.length
+}
+
+/**
+ * 进卡组、进秘境前检查卡组限制。
+ * 同名传奇只留最先放进去的一张，多出来的放回背包并记入提示。
+ * 张数超过上限时不自动下阵，只返回提示，调用方拦住进入。
+ *
+ * @returns 要显示的提示。空数组表示卡组合规，可以进入秘境
+ */
+export function inspectDeckLimits(): string[] {
+  const messages: string[] = []
+  if (releaseExtraLegends() > 0) messages.push(DECK_LEGEND_RETURNED_MESSAGE)
+  if (deck.length > DECK_LIMIT) messages.push(DECK_OVER_MESSAGE)
+  return messages
 }
 
 /**

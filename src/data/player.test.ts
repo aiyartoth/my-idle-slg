@@ -5,7 +5,7 @@ import { PALADIN_CARD } from './wow'
 import { playerSaveFrom } from './playerDb'
 import { IDLE_CAP_MS } from './idle'
 import { FURNACE_REFRESH_CRYSTAL } from './furnace'
-import { ACTIVITY_LOG_LIMIT, addCardToBag, addExp, addMaterialToBag, baseHpFrom, craftFurnaceRecipe, decomposeBagCard, ensureFurnaceOffers, expToNextLevel, formatActivityLine, getPlayerSnapshot, HP_PER_LEVEL, isIdling, noteBattleResult, notePresence, recordRealmClear, refreshFurnaceOffers, releaseExtraLegends, restorePlayer, settleOfflineReturn, shouldOfferIdle, startClearedIdle, toggleRealmIdle, unequipDeckCard, useBagCard } from './player'
+import { ACTIVITY_LOG_LIMIT, addCardToBag, addExp, addMaterialToBag, baseHpFrom, craftFurnaceRecipe, DECK_LEGEND_RETURNED_MESSAGE, DECK_LIMIT, DECK_OVER_MESSAGE, decomposeBagCard, ensureFurnaceOffers, expToNextLevel, formatActivityLine, getPlayerSnapshot, HP_PER_LEVEL, inspectDeckLimits, isIdling, noteBattleResult, notePresence, recordRealmClear, refreshFurnaceOffers, releaseExtraLegends, restorePlayer, settleOfflineReturn, shouldOfferIdle, startClearedIdle, toggleRealmIdle, unequipDeckCard, useBagCard } from './player'
 
 describe('冒险者', () => {
   it('大本营生命按等级加点，科技和神器以后再加', () => {
@@ -245,5 +245,82 @@ describe('冒险者', () => {
     const stack = pruned.bag.find((entry) => entry.kind === 'card' && entry.card.id === 'zhang-jiao')
     expect(stack?.kind === 'card' ? stack.count : 0).toBe(beforeCount + 2)
     expect(releaseExtraLegends()).toBe(0)
+  })
+
+  it('卡组达到上限后，背包里的牌不能再上阵', () => {
+    const before = getPlayerSnapshot()
+    restorePlayer({
+      gold: before.gold,
+      level: before.level,
+      exp: before.exp,
+      deckSeq: 80,
+      bagSeq: 80,
+      deck: Array.from({ length: DECK_LIMIT }, (_, index) => ({ uid: `d-cap-${index}`, card: INFANTRY_CARD })),
+      bag: [...before.bag],
+      crystal: before.crystal,
+      furnaceOffers: [...before.furnaceOffers],
+      realms: before.realms,
+      activityLog: [...before.activityLog],
+    })
+    const item = addCardToBag(YELLOW_ARCHER_CARD, 2)
+    const count = getPlayerSnapshot().bag.find((entry) => entry.id === item.id)?.count
+    expect(useBagCard(item.id)).toBe('full')
+    expect(getPlayerSnapshot().deck).toHaveLength(DECK_LIMIT)
+    expect(getPlayerSnapshot().bag.find((entry) => entry.id === item.id)?.count).toBe(count)
+    const room = getPlayerSnapshot().deck.slice(0, DECK_LIMIT - 1)
+    restorePlayer({
+      gold: before.gold,
+      level: before.level,
+      exp: before.exp,
+      deckSeq: 90,
+      bagSeq: 90,
+      deck: room,
+      bag: getPlayerSnapshot().bag.map((entry) => ({ ...entry })),
+      crystal: before.crystal,
+      furnaceOffers: [...before.furnaceOffers],
+      realms: before.realms,
+      activityLog: [...before.activityLog],
+    })
+    expect(useBagCard(item.id)).toBe('added')
+    expect(getPlayerSnapshot().deck).toHaveLength(DECK_LIMIT)
+  })
+
+  it('进卡组和进秘境前收回多余传奇，超过上限只提示不自动下阵', () => {
+    const before = getPlayerSnapshot()
+    const fill = (length: number) =>
+      Array.from({ length }, (_, index) => ({ uid: `d-guard-${index}`, card: INFANTRY_CARD }))
+    restorePlayer({
+      gold: before.gold,
+      level: before.level,
+      exp: before.exp,
+      deckSeq: 100,
+      bagSeq: 100,
+      deck: [...fill(DECK_LIMIT), { uid: 'd-guard-extra', card: INFANTRY_CARD }],
+      bag: [...before.bag],
+      crystal: before.crystal,
+      furnaceOffers: [...before.furnaceOffers],
+      realms: before.realms,
+      activityLog: [...before.activityLog],
+    })
+    expect(inspectDeckLimits()).toEqual([DECK_OVER_MESSAGE])
+    expect(getPlayerSnapshot().deck).toHaveLength(DECK_LIMIT + 1)
+
+    restorePlayer({
+      gold: before.gold,
+      level: before.level,
+      exp: before.exp,
+      deckSeq: 120,
+      bagSeq: 120,
+      deck: [...fill(2), { uid: 'd-legend-a', card: ZHANG_JIAO_CARD }, { uid: 'd-legend-b', card: ZHANG_JIAO_CARD }],
+      bag: [...before.bag],
+      crystal: before.crystal,
+      furnaceOffers: [...before.furnaceOffers],
+      realms: before.realms,
+      activityLog: [...before.activityLog],
+    })
+    expect(inspectDeckLimits()).toEqual([DECK_LEGEND_RETURNED_MESSAGE])
+    expect(getPlayerSnapshot().deck.filter((entry) => entry.card.id === 'zhang-jiao')).toHaveLength(1)
+    expect(getPlayerSnapshot().deck.find((entry) => entry.card.id === 'zhang-jiao')?.uid).toBe('d-legend-a')
+    expect(inspectDeckLimits()).toEqual([])
   })
 })

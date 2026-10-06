@@ -127,11 +127,13 @@ export function openAround(from: Coord, tiles: readonly (readonly TileKind[])[],
 }
 
 /**
- * 在移动力内走向离目标最近的格子，并记下经过的每一格。
- * 路径含起点。走不近时只有起点，方便界面按格滑动。
+ * 走向离目标最近、而且真的走得到的格子，并记下经过的每一格。
+ * 先在整张可走的棋盘上绕开石头和河流，再只返回这一回合移动力内的前几步。
+ * 绕路开头即使暂时离目标更远也会走，避免停在石头前面。
+ * 路径含起点。完全走不近时只有起点，方便界面按格滑动。
  *
  * @param from 当前格子
- * @param move 移动力
+ * @param move 这一回合能走的步数。传入 Infinity 时返回绕开障碍后的整条路
  * @param tiles 棋盘
  * @param blocked 其他兵占住的坐标键
  * @param goals 要靠近的格子，一般是敌人或敌方大本营
@@ -161,7 +163,6 @@ export function chooseRoute(
     if (score < best.score || (score === best.score && current.steps < best.steps)) {
       best = { row: current.row, col: current.col, steps: current.steps, score }
     }
-    if (current.steps >= move) continue
     for (const next of orthogonal(current)) {
       const key = keyOf(next)
       if (seen.has(key) || blocked.has(key) || !canEnter(tiles[next.row][next.col], flying)) continue
@@ -180,11 +181,12 @@ export function chooseRoute(
     cursor = parent.get(keyOf(cursor)) ?? null
   }
   path.reverse()
-  return path
+  const budget = Number.isFinite(move) ? Math.max(0, Math.floor(move)) : path.length - 1
+  return path.slice(0, budget + 1)
 }
 
 /**
- * 在移动力内走向离目标最近的格子。走不近就留在原地。
+ * 沿绕开石头和河流的路，走出这一回合的移动力。走不近就留在原地。
  *
  * @param from 当前格子
  * @param move 移动力

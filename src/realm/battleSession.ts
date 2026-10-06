@@ -1,6 +1,6 @@
 import type { UnitCardData } from '../data/cards'
 import { rollClearLoot, type RealmLoot } from '../data/drops'
-import { getBaseHp, getDeckCards, grantBattleLoot, noteBattleResult, recordRealmClear, releaseExtraLegends } from '../data/player'
+import { getBaseHp, getDeckCards, grantBattleLoot, inspectDeckLimits, noteBattleResult, recordRealmClear } from '../data/player'
 import { advanceBattle, type BattleState } from './battle'
 import { createChaosBattle } from './chaos'
 import { createStormwindBattle } from './stormwind'
@@ -87,17 +87,21 @@ export function subscribeSession(listener: () => void): () => void {
 
 /**
  * 进入一个已开放的秘境。已经有一场没确认的战斗时不另开。
+ * 开局前先查卡组。有提示时这场不开，把提示交还给页面。
  *
  * @param realmId 秘境 id。不认识的 id 不会开局
+ * @returns 拦住进入的提示。空数组表示已经开打，或本来就有一场
  */
-export function ensureRealmBattle(realmId: string): void {
-  if (session.status !== 'idle') return
+export function ensureRealmBattle(realmId: string): string[] {
+  if (session.status !== 'idle') return []
+  const messages = inspectDeckLimits()
+  if (messages.length > 0) return messages
   const battle = createRealmBattle(realmId)
-  if (!battle) return
-  releaseExtraLegends()
+  if (!battle) return []
   battleStartedAt = Date.now()
   publish({ status: 'running', realmId, battle })
   if (!timer) timer = window.setInterval(tick, TURN_GAP_MS)
+  return []
 }
 
 /**

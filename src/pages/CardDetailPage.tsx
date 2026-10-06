@@ -1,12 +1,14 @@
 import { useRef, useState, useSyncExternalStore } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { RARITY_TEXT_CLASS, type UnitCardData } from '../data/cards'
-import { getPlayerSnapshot, subscribePlayer, unequipDeckCard, useBagCard } from '../data/player'
+import { DECK_FULL_MESSAGE, DECK_LEGEND_MESSAGE, getPlayerSnapshot, subscribePlayer, unequipDeckCard, useBagCard } from '../data/player'
+import { DeckLimitNotices } from '../ui/DeckLimitNotices'
 import { UnitCard } from '../ui/UnitCard'
 
 /**
  * 卡牌详情页。背包里可以上阵，卡组里可以下阵。升级之类的功能以后加在这一页。
  * 背包里用掉一张后留在本页，还有同名牌就继续显示使用。
+ * 卡组已满或同名传奇已在卡组时，背包里的牌不动。
  * 数量始终显示，包括只剩 1 张，以及用完后留在本页的 0。
  *
  * @returns 卡牌详情
@@ -16,7 +18,7 @@ export default function CardDetailPage() {
   const navigate = useNavigate()
   const player = useSyncExternalStore(subscribePlayer, getPlayerSnapshot)
   const [joined, setJoined] = useState<UnitCardData | null>(null)
-  const [legendBlocked, setLegendBlocked] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
   const [joinedFor, setJoinedFor] = useState('')
   const seenRef = useRef<{ id: string; card: UnitCardData } | null>(null)
   const fromDeck = place === 'deck'
@@ -26,7 +28,7 @@ export default function CardDetailPage() {
   if (joinedFor !== routeId) {
     setJoinedFor(routeId)
     setJoined(null)
-    setLegendBlocked(false)
+    setNotice(null)
   }
   if (card && seenRef.current?.id !== routeId) seenRef.current = { id: routeId, card }
   if (!card && seenRef.current && seenRef.current.id !== routeId) seenRef.current = null
@@ -55,10 +57,10 @@ export default function CardDetailPage() {
       </div>
       {!fromDeck ? <p className="mt-3 text-sm text-[#c8b49a]">数量 {bagItem?.kind === 'card' ? bagItem.count : 0}</p> : null}
       {joined ? <JoinedNotice card={joined} /> : null}
-      {legendBlocked ? (
-        <p className="mt-3 rounded-lg bg-[#f4efe6] px-3 py-2 text-sm font-semibold text-[#241f1a]" role="status">
-          卡组已包含该传奇卡
-        </p>
+      {notice ? (
+        <div className="mt-3">
+          <DeckLimitNotices messages={[notice]} />
+        </div>
       ) : null}
       <div className="mt-4">
         {fromDeck ? (
@@ -80,11 +82,16 @@ export default function CardDetailPage() {
               if (!cardId || !shown) return
               const used = useBagCard(cardId)
               if (used === 'legend') {
-                setLegendBlocked(true)
+                setNotice(DECK_LEGEND_MESSAGE)
+                return
+              }
+              if (used === 'full') {
+                setNotice(DECK_FULL_MESSAGE)
+                setJoined(null)
                 return
               }
               if (used !== 'added') return
-              setLegendBlocked(false)
+              setNotice(null)
               setJoined(shown)
             }}
           >
