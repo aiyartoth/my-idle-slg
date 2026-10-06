@@ -135,6 +135,7 @@ export function openAround(from: Coord, tiles: readonly (readonly TileKind[])[],
  * @param tiles 棋盘
  * @param blocked 其他兵占住的坐标键
  * @param goals 要靠近的格子，一般是敌方大本营
+ * @param flying 为 true 时可以经过河流和石头，仍然不能进大本营
  * @returns 从起点到落点的格子，相邻两格只差一步
  */
 export function chooseRoute(
@@ -143,6 +144,7 @@ export function chooseRoute(
   tiles: readonly (readonly TileKind[])[],
   blocked: ReadonlySet<string>,
   goals: readonly Coord[],
+  flying = false,
 ): Coord[] {
   const parent = new Map<string, Coord | null>()
   parent.set(keyOf(from), null)
@@ -159,7 +161,7 @@ export function chooseRoute(
     if (current.steps >= move) continue
     for (const next of orthogonal(current)) {
       const key = keyOf(next)
-      if (seen.has(key) || blocked.has(key) || !canEnter(tiles[next.row][next.col])) continue
+      if (seen.has(key) || blocked.has(key) || !canEnter(tiles[next.row][next.col], flying)) continue
       seen.add(key)
       parent.set(key, { row: current.row, col: current.col })
       queue.push({ ...next, steps: current.steps + 1 })
@@ -185,6 +187,7 @@ export function chooseRoute(
  * @param tiles 棋盘
  * @param blocked 其他兵占住的坐标键
  * @param goals 要靠近的格子，一般是敌方大本营
+ * @param flying 为 true 时可以经过河流和石头，仍然不能进大本营
  * @returns 这一回合要站的格子
  */
 export function chooseDestination(
@@ -193,8 +196,9 @@ export function chooseDestination(
   tiles: readonly (readonly TileKind[])[],
   blocked: ReadonlySet<string>,
   goals: readonly Coord[],
+  flying = false,
 ): Coord {
-  const path = chooseRoute(from, move, tiles, blocked, goals)
+  const path = chooseRoute(from, move, tiles, blocked, goals, flying)
   return path[path.length - 1]
 }
 
@@ -225,10 +229,13 @@ function orthogonal(coord: Coord): Coord[] {
 
 /**
  * 这格能不能走进去。森林算空地，石头、河流和大本营不行。
+ * 飞行单位可以落在河流和石头上，大本营仍然不能站。
  *
  * @param tile 格子种类
+ * @param flying 是否无视河流和石头
  * @returns 能进入时为 true
  */
-function canEnter(tile: TileKind): boolean {
-  return tile === 'empty' || tile === 'forest'
+function canEnter(tile: TileKind, flying = false): boolean {
+  if (tile === 'empty' || tile === 'forest') return true
+  return flying && (tile === 'river' || tile === 'stone')
 }

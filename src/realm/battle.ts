@@ -1,4 +1,6 @@
-import type { ArmorSkillKind, AttackKind, UnitCardData } from '../data/cards'
+import { SHEEP_CARD } from '../data/alliance'
+import { isMageType } from '../data/cardType'
+import type { ArmorSkillKind, AttackKind, SkillKind, UnitCardData } from '../data/cards'
 import { cellsOf, chooseRoute, keyOf, manhattan, openAround, openSummonTiles, type Coord, type TileKind } from './board'
 
 /** 开战时双方各拿进手的张数 */
@@ -12,6 +14,27 @@ const HEAL_QUEUE_PREFIX = 'heal:'
 
 /** 行动队列里，雷电步的前缀。打完再走位和普攻 */
 const BOLT_QUEUE_PREFIX = 'bolt:'
+
+/** 行动队列里，心灵之火的前缀。先加攻击，再移动 */
+const FIRE_QUEUE_PREFIX = 'fire:'
+
+/** 行动队列里，变形术的前缀。先变羊，再移动和普攻 */
+const POLY_QUEUE_PREFIX = 'poly:'
+
+/** 行动队列里，风暴之锤的前缀。先晕最近的敌人 */
+const HAMMER_QUEUE_PREFIX = 'hammer:'
+
+/** 行动队列里，雷霆一击的前缀。先打身边，再移动 */
+const CLAP_QUEUE_PREFIX = 'clap:'
+
+/** 行动队列里，暴风雪的前缀。先打范围内的敌人 */
+const STORM_QUEUE_PREFIX = 'storm:'
+
+/** 雷霆一击附带的减速。和伤害点数分开，避免点数调高时把移动压没 */
+const CLAP_SLOW = 1
+
+/** 行动队列里技能步的前缀。用来从一格队列里取出单位 uid */
+const STEP_PREFIXES = [HEAL_QUEUE_PREFIX, BOLT_QUEUE_PREFIX, FIRE_QUEUE_PREFIX, POLY_QUEUE_PREFIX, HAMMER_QUEUE_PREFIX, CLAP_QUEUE_PREFIX, STORM_QUEUE_PREFIX] as const
 
 /** 战斗一侧 */
 export type Side = 'player' | 'enemy'
@@ -37,6 +60,12 @@ export interface BoardUnit {
   hp: number
   /** 上场序号。越小越早上场；开局就在场上、分不出先后时用同一个数，再按我方优先 */
   entered: number
+  /** 心灵之火加上的攻击。打出一次攻击后清掉 */
+  bonusAtk?: number
+  /** 减速点数。下次移动时扣掉，这次行动结束后清掉。留到回合开始时也会压低行动速度 */
+  slow?: number
+  /** 变形术前的原卡。下回合开始时变回，生命保持绵羊时的数值 */
+  trueForm?: UnitCardData
 }
 
 /** 这一回合某名兵走过的格子，含起点和终点。界面按这个路径逐格滑动 */
@@ -97,12 +126,12 @@ export interface BattleActor {
   hp?: number
 }
 
-/** 一击的拆解。科技和 buff 还没进战斗，额外攻击先记 0 */
+/** 一击的拆解。额外攻击来自冲锋、心灵之火和反馈 */
 export interface DamageDetail {
   kind: AttackKind
   /** 卡面基础攻击 */
   baseAtk: number
-  /** 科技、增益加上的攻击。目前没有这些来源 */
+  /** 冲锋、心灵之火、反馈加上的攻击 */
   extraAtk: number
   /** 对方护甲原值。物理看重甲，法术看魔甲 */
   armor: number
@@ -225,7 +254,7 @@ export function stepBattle(state: BattleState): BattleState {
 
 /**
  * 战斗往前走一步。队列空着就开新回合；否则结算下一名还活着的兵。
- * 有治疗时先回复，有雷电时再打雷电，然后移动并攻击。伤害立刻生效，后面的兵看到的是这一步之后的局面。
+ * 治疗、心灵之火、变形、风暴之锤、雷霆一击、暴风雪和雷电各占一步，然后移动并攻击。伤害立刻生效，后面的兵看到的是这一步之后的局面。
  *
  * @param state 当前局面
  * @returns 这一步之后的局面。已经分出胜负时原样返回
@@ -237,7 +266,7 @@ export function advanceBattle(state: BattleState): BattleState {
 }
 
 /**
- * 回合开始。手里已有的牌减冷却，再抽牌、召唤。场上有撒豆成兵的，再在周围召一只黄巾兵，然后按速度排好行动队列。
+ * 回合开始。变形术留下的绵羊先变回原卡。手里已有的牌减冷却，再抽牌、召唤。场上有召唤技能的，再在周围召技能里的单位，然后按速度排好行动队列。
  *
  * @param state 上一个回合结束后的局面
  * @returns 召唤完、还没人移动的局面
@@ -247,13 +276,13 @@ function beginRound(state: BattleState): BattleState {
   const log: string[] = []
   const events: BattleEvent[] = []
   let nextUid = state.nextUid
+  let units = endPolymorph(state.units, turn, log, events)
   let playerHand = tickHand(state.playerHand)
   let enemyHand = tickHand(state.enemyHand)
   const drawnPlayer = drawCard(playerHand, state.playerDeck, 'player', turn, log, events)
   const drawnEnemy = drawCard(enemyHand, state.enemyDeck, 'enemy', turn, log, events)
   playerHand = drawnPlayer.hand
   enemyHand = drawnEnemy.hand
-  let units = state.units.map((unit) => ({ ...unit }))
   const playerSummon = summonSide('player', playerHand, units, state.tiles, turn, log, events, nextUid)
   playerHand = playerSummon.hand
   units = playerSummon.units
@@ -265,7 +294,7 @@ function beginRound(state: BattleState): BattleState {
   const scattered = scatterBeans(units, state.tiles, turn, log, events, nextUid, state.random ?? Math.random)
   units = scattered.units
   nextUid = scattered.nextUid
-  const queue = [...units].sort(actingOrder).flatMap(queuedSteps)
+  const queue = [...units].sort(byBattleOrder(units)).flatMap(queuedSteps)
   const next = {
     ...state,
     turn,
@@ -286,7 +315,7 @@ function beginRound(state: BattleState): BattleState {
 }
 
 /**
- * 队列里下一名还在场上的兵行动：有治疗时先回复血量最低的友方，有雷电时再打随机敌人，再走，再打进入范围的敌人或大本营。
+ * 队列里下一名还在场上的兵行动。技能步先结算，再按减速后的移动力走位，飞行单位可以过河。
  * 已经被击破的直接跳过，不占一次行动。
  *
  * @param state 本回合还有人没动的局面
@@ -294,30 +323,39 @@ function beginRound(state: BattleState): BattleState {
  */
 function actNext(state: BattleState): BattleState {
   const queue = [...state.queue]
-  let units = state.units.map((unit) => ({ ...unit }))
+  const units = state.units.map((unit) => ({ ...unit }))
   while (queue.length > 0 && !tokenAlive(queue[0], units)) queue.shift()
   const token = queue.shift()
   if (!token) return { ...state, queue, routes: [], strike: null, log: [] }
-  if (token.startsWith(HEAL_QUEUE_PREFIX)) return healBeforeAction(state, queue, token.slice(HEAL_QUEUE_PREFIX.length))
-  if (token.startsWith(BOLT_QUEUE_PREFIX)) return lightningAction(state, queue, token.slice(BOLT_QUEUE_PREFIX.length))
-  const uid = token
+  const uid = tokenUid(token)
+  if (token.startsWith(HEAL_QUEUE_PREFIX)) return healBeforeAction(state, queue, uid)
+  if (token.startsWith(FIRE_QUEUE_PREFIX)) return innerFireAction(state, queue, uid)
+  if (token.startsWith(POLY_QUEUE_PREFIX)) return polymorphAction(state, queue, uid)
+  if (token.startsWith(HAMMER_QUEUE_PREFIX)) return stormBoltAction(state, queue, uid)
+  if (token.startsWith(CLAP_QUEUE_PREFIX)) return thunderClapAction(state, queue, uid)
+  if (token.startsWith(STORM_QUEUE_PREFIX)) return blizzardAction(state, queue, uid)
+  if (token.startsWith(BOLT_QUEUE_PREFIX)) return lightningAction(state, queue, uid)
   const actor = units.find((unit) => unit.uid === uid)
   if (!actor) return { ...state, queue, routes: [], strike: null, log: [] }
   const blocked = new Set(units.filter((other) => other.uid !== actor.uid).map(keyOf))
   const goals = routeGoals(actor, units, state.tiles)
-  const path = chooseRoute(actor, actor.card.move, state.tiles, blocked, goals)
+  const slow = actor.slow ?? 0
+  const move = slow > 0 ? Math.max(1, actor.card.move - slow) : actor.card.move
+  const path = chooseRoute(actor, move, state.tiles, blocked, goals, hasSkill(actor.card, 'fly'))
   const destination = path[path.length - 1]
   const moved = { ...actor, row: destination.row, col: destination.col }
-  units = units.map((unit) => (unit.uid === moved.uid ? moved : unit))
+  const placed = units.map((unit) => (unit.uid === moved.uid ? moved : unit))
   const log: string[] = []
   const events: BattleEvent[] = []
-  const struck = strikeOnce(moved, units, state.tiles, state.playerBaseHp, state.enemyBaseHp, state.turn, log, events)
+  const charge = path.length > 1 ? skillValue(moved.card, 'charge') : 0
+  const struck = strikeOnce(moved, placed, state.tiles, state.playerBaseHp, state.enemyBaseHp, state.turn, log, events, queue, charge + (moved.bonusAtk ?? 0))
+  const settled = struck.units.map((unit) => (unit.uid === uid && slow > 0 ? { ...unit, slow: 0 } : unit))
   const result = judge(
     {
       ...state,
       playerBaseHp: struck.playerBaseHp,
       enemyBaseHp: struck.enemyBaseHp,
-      units: struck.units,
+      units: settled,
     },
     log,
     events,
@@ -327,8 +365,8 @@ function actNext(state: BattleState): BattleState {
     result,
     playerBaseHp: struck.playerBaseHp,
     enemyBaseHp: struck.enemyBaseHp,
-    units: struck.units,
-    queue: result === 'ongoing' ? queue : [],
+    units: settled,
+    queue: result === 'ongoing' ? struck.queue : [],
     routes: [{ uid: moved.uid, path }],
     strike: struck.strike,
     log,
@@ -353,21 +391,29 @@ export function strikeDamage(attacker: UnitCardData, defender: UnitCardData): nu
  *
  * @param attacker 攻击方卡牌
  * @param defender 防守方卡牌
+ * @param bonusAtk 这一击临时加上的攻击，冲锋和心灵之火用
  * @returns 各项来源和最终伤害
  */
-export function explainStrike(attacker: UnitCardData, defender: UnitCardData): DamageDetail {
+export function explainStrike(attacker: UnitCardData, defender: UnitCardData, bonusAtk = 0): DamageDetail {
   const spell = attacker.attackKind === 'spell'
+  // 反馈打法术单位，类型行里带「法师」的也算，牧师和女巫因此吃到加伤
+  const feedback = !spell && (defender.attackKind === 'spell' || isMageType(defender)) ? skillValue(attacker, 'feedback') : 0
+  const extraAtk = bonusAtk + feedback
+  if (spell && hasSkill(defender, 'spellImmune')) {
+    const absorbed = attacker.atk + extraAtk
+    return { kind: 'spell', baseAtk: attacker.atk, extraAtk, armor: absorbed, pierce: 0, reduced: absorbed, damage: 0 }
+  }
   const armor = armorValue(defender, spell ? 'ward' : 'plate')
   const pierce = armorValue(attacker, spell ? 'spellPierce' : 'pierce')
   const reduced = Math.max(0, armor - pierce)
   return {
     kind: attacker.attackKind,
     baseAtk: attacker.atk,
-    extraAtk: 0,
+    extraAtk,
     armor,
     pierce,
     reduced,
-    damage: Math.max(0, attacker.atk - reduced),
+    damage: Math.max(0, attacker.atk + extraAtk - reduced),
   }
 }
 
@@ -482,7 +528,9 @@ export function actingOrder(left: BoardUnit, right: BoardUnit): number {
  * @param turn 正在打的回合
  * @param log 这一步的文字
  * @param events 这一步的战报
- * @returns 扣血之后的兵和大本营生命
+ * @param queue 这一步之后还没行动的队列。重击会从里面拿掉目标
+ * @param bonusAtk 冲锋和心灵之火带进这一击的额外攻击
+ * @returns 扣血之后的兵、大本营生命和剩余队列
  */
 function strikeOnce(
   actor: BoardUnit,
@@ -493,10 +541,12 @@ function strikeOnce(
   turn: number,
   log: string[],
   events: BattleEvent[],
-): { units: BoardUnit[]; playerBaseHp: number; enemyBaseHp: number; strike: BattleStrike | null } {
+  queue: readonly string[],
+  bonusAtk: number,
+): { units: BoardUnit[]; playerBaseHp: number; enemyBaseHp: number; strike: BattleStrike | null; queue: string[] } {
   const target = pickTarget(actor, units, tiles)
   if (target) {
-    const detail = explainStrike(actor.card, target.card)
+    const detail = explainStrike(actor.card, target.card, bonusAtk)
     const left = Math.max(0, target.hp - detail.damage)
     log.push(`${actor.card.name} 对 ${target.card.name} 造成 ${detail.damage}`)
     events.push({
@@ -510,9 +560,24 @@ function strikeOnce(
       log.push(`${target.card.name} 被击破`)
       events.push({ turn, kind: 'death', actor: { side: target.side, card: target.card, uid: target.uid, hp: 0 } })
     }
+    const slowed = skillValue(actor.card, 'slow') > 0 && left > 0 && !spellTurnedAway(actor.card, target.card)
+    let nextUnits = units.flatMap((unit) => {
+      if (unit.uid !== target.uid) return [unit]
+      if (left <= 0) return []
+      const slow = slowed ? Math.max(unit.slow ?? 0, skillValue(actor.card, 'slow')) : unit.slow
+      return [{ ...unit, hp: left, slow }]
+    })
+    let nextQueue = hasSkill(actor.card, 'bash') ? dropSteps(queue, target.uid) : [...queue]
+    const splash = skillValue(actor.card, 'splash')
+    if (splash > 0) {
+      const neighbors = nextUnits.filter((unit) => unit.side !== actor.side && manhattan(target, unit) === 1)
+      const splashed = strikeTargets(actor, neighbors, nextUnits, turn, log, events, { atk: splash, kind: 'physical' })
+      nextUnits = splashed.units
+    }
     return {
       playerBaseHp,
       enemyBaseHp,
+      queue: nextQueue,
       strike: {
         attackerUid: actor.uid,
         from: { row: actor.row, col: actor.col },
@@ -521,17 +586,14 @@ function strikeOnce(
         kind: 'damage',
         amount: detail.damage,
       },
-      units: units.flatMap((unit) => {
-        if (unit.uid === target.uid) return left > 0 ? [{ ...unit, hp: left }] : []
-        return [{ ...unit }]
-      }),
+      units: clearBonus(nextUnits, actor.uid),
     }
   }
   const enemySide: Side = actor.side === 'player' ? 'enemy' : 'player'
   const baseKind = enemySide === 'player' ? 'playerBase' : 'enemyBase'
   const inRange = cellsOf(tiles, baseKind).some((cell) => manhattan(actor, cell) <= actor.card.range)
-  if (!inRange) return { playerBaseHp, enemyBaseHp, strike: null, units: units.map((unit) => ({ ...unit })) }
-  const damage = actor.card.atk
+  if (!inRange) return { playerBaseHp, enemyBaseHp, strike: null, queue: [...queue], units: units.map((unit) => ({ ...unit })) }
+  const damage = actor.card.atk + bonusAtk + skillValue(actor.card, 'siege')
   const nextPlayer = enemySide === 'player' ? Math.max(0, playerBaseHp - damage) : playerBaseHp
   const nextEnemy = enemySide === 'enemy' ? Math.max(0, enemyBaseHp - damage) : enemyBaseHp
   const baseCells = cellsOf(tiles, baseKind)
@@ -547,8 +609,9 @@ function strikeOnce(
   return {
     playerBaseHp: nextPlayer,
     enemyBaseHp: nextEnemy,
+    queue: [...queue],
     strike: { attackerUid: actor.uid, from: { row: actor.row, col: actor.col }, to, kind: 'damage', amount: damage },
-    units: units.map((unit) => ({ ...unit })),
+    units: clearBonus(units.map((unit) => ({ ...unit })), actor.uid),
   }
 }
 
@@ -629,7 +692,7 @@ function healBeforeAction(state: BattleState, queue: string[], uid: string): Bat
  * @returns 回复点数合计
  */
 function healAmount(card: UnitCardData): number {
-  return card.skills.reduce((sum, skill) => sum + (skill.kind === 'heal' ? (skill.value ?? 0) : 0), 0)
+  return skillValue(card, 'heal')
 }
 
 /**
@@ -643,32 +706,33 @@ function hasVigilance(card: UnitCardData): boolean {
 }
 
 /**
- * 队列这一格对应的兵还在场上。治疗步看前缀后面的 uid。
+ * 队列这一格对应的兵还在场上。技能步看前缀后面的 uid。
  *
  * @param token 行动队列里的一格
  * @param units 场上的兵
  * @returns 还能行动时为 true
  */
 function tokenAlive(token: string, units: readonly BoardUnit[]): boolean {
-  const uid = token.startsWith(HEAL_QUEUE_PREFIX)
-    ? token.slice(HEAL_QUEUE_PREFIX.length)
-    : token.startsWith(BOLT_QUEUE_PREFIX)
-      ? token.slice(BOLT_QUEUE_PREFIX.length)
-      : token
-  return units.some((unit) => unit.uid === uid)
+  return units.some((unit) => unit.uid === tokenUid(token))
 }
 
 /**
- * 这一名兵本回合要先做的步骤。治疗和雷电各占一步，最后才是移动和普攻。
+ * 这一名兵本回合要先做的步骤。治疗和各类法术在前，最后才是移动和普攻。
  *
  * @param unit 还在场上的兵
  * @returns 行动队列里的几格
  */
 function queuedSteps(unit: BoardUnit): string[] {
   const steps: string[] = []
-  if (healAmount(unit.card) > 0) steps.push(`${HEAL_QUEUE_PREFIX}${unit.uid}`)
-  if (lightningAmount(unit.card) > 0) steps.push(`${BOLT_QUEUE_PREFIX}${unit.uid}`)
-  steps.push(unit.uid)
+  const id = unit.uid
+  if (healAmount(unit.card) > 0) steps.push(`${HEAL_QUEUE_PREFIX}${id}`)
+  if (skillValue(unit.card, 'innerFire') > 0) steps.push(`${FIRE_QUEUE_PREFIX}${id}`)
+  if (skillValue(unit.card, 'polymorph') > 0) steps.push(`${POLY_QUEUE_PREFIX}${id}`)
+  if (skillValue(unit.card, 'stormBolt') > 0) steps.push(`${HAMMER_QUEUE_PREFIX}${id}`)
+  if (skillValue(unit.card, 'thunderClap') > 0) steps.push(`${CLAP_QUEUE_PREFIX}${id}`)
+  if (skillValue(unit.card, 'blizzard') > 0) steps.push(`${STORM_QUEUE_PREFIX}${id}`)
+  if (lightningAmount(unit.card) > 0) steps.push(`${BOLT_QUEUE_PREFIX}${id}`)
+  steps.push(id)
   return steps
 }
 
@@ -689,7 +753,7 @@ function beanSummons(card: UnitCardData): readonly UnitCardData[] {
  * @returns 法术伤害基础值
  */
 function lightningAmount(card: UnitCardData): number {
-  return card.skills.reduce((sum, skill) => sum + (skill.kind === 'lightning' ? (skill.value ?? 0) : 0), 0)
+  return skillValue(card, 'lightning')
 }
 
 /**
@@ -777,13 +841,9 @@ function lightningAction(state: BattleState, queue: string[], uid: string): Batt
     }
   }
   const target = pickOne(foes, state.random ?? Math.random)
-  const armor = armorValue(target.card, 'ward')
-  const pierce = armorValue(actor.card, 'spellPierce')
-  const reduced = Math.max(0, armor - pierce)
-  const damage = Math.max(0, amount - reduced)
-  const left = Math.max(0, target.hp - damage)
-  const detail: DamageDetail = { kind: 'spell', baseAtk: amount, extraAtk: 0, armor, pierce, reduced, damage }
-  const log = [`${actor.card.name} 对 ${target.card.name} 造成 ${damage}`]
+  const detail = explainStrike({ ...actor.card, attackKind: 'spell', atk: amount }, target.card)
+  const left = Math.max(0, target.hp - detail.damage)
+  const log = [`${actor.card.name} 对 ${target.card.name} 造成 ${detail.damage}`]
   const events: BattleEvent[] = [
     {
       turn: state.turn,
@@ -814,7 +874,7 @@ function lightningAction(state: BattleState, queue: string[], uid: string): Batt
       to: { row: target.row, col: target.col },
       targetUid: target.uid,
       kind: 'damage',
-      amount: damage,
+      amount: detail.damage,
     },
     log,
     history: [...state.history, ...events],
@@ -900,6 +960,391 @@ function sideOut(state: BattleState, side: Side): boolean {
  * @returns 点数合计
  */
 function armorValue(card: UnitCardData, kind: ArmorSkillKind): number {
+  return skillValue(card, kind)
+}
+
+/**
+ * 某种技能的点数合计。没有这个技能时是 0。
+ *
+ * @param card 卡牌
+ * @param kind 技能种类
+ * @returns 点数合计
+ */
+function skillValue(card: UnitCardData, kind: SkillKind): number {
   return card.skills.reduce((sum, skill) => sum + (skill.kind === kind ? (skill.value ?? 0) : 0), 0)
+}
+
+/**
+ * 这张卡有没有某一种技能。
+ *
+ * @param card 卡牌
+ * @param kind 技能种类
+ * @returns 有这条技能时为 true
+ */
+function hasSkill(card: UnitCardData, kind: SkillKind): boolean {
+  return card.skills.some((skill) => skill.kind === kind)
+}
+
+/**
+ * 从行动队列的一格里取出单位 uid。技能步只看冒号后面。
+ *
+ * @param token 队列里的一格
+ * @returns 单位 uid
+ */
+function tokenUid(token: string): string {
+  const prefix = STEP_PREFIXES.find((item) => token.startsWith(item))
+  return prefix ? token.slice(prefix.length) : token
+}
+
+/**
+ * 拿掉某一名兵还没结算的行动，用来打断本回合。
+ *
+ * @param queue 剩余队列
+ * @param uid 要打断的兵
+ * @returns 去掉该兵所有步骤后的队列
+ */
+function dropSteps(queue: readonly string[], uid: string): string[] {
+  return queue.filter((token) => tokenUid(token) !== uid)
+}
+
+/**
+ * 法术打在法术免疫上时不生效。物理攻击不受影响。
+ *
+ * @param attacker 攻击方卡牌
+ * @param defender 防守方卡牌
+ * @returns 这一击被免疫时为 true
+ */
+function spellTurnedAway(attacker: UnitCardData, defender: UnitCardData): boolean {
+  return attacker.attackKind === 'spell' && hasSkill(defender, 'spellImmune')
+}
+
+/**
+ * 打完一次攻击后清掉心灵之火。没打中则留着。
+ *
+ * @param units 场上的兵
+ * @param uid 攻击者
+ * @returns 清掉临时攻击后的兵
+ */
+function clearBonus(units: readonly BoardUnit[], uid: string): BoardUnit[] {
+  return units.map((unit) => (unit.uid === uid && unit.bonusAtk ? { ...unit, bonusAtk: 0 } : unit))
+}
+
+/**
+ * 按光环和减速算出这一回合的行动速度。没被影响时沿用卡面速度。
+ *
+ * @param unit 要排序的兵
+ * @param units 场上所有兵，用来找友方光环
+ * @returns 用来排序的速度，被影响时最低为 1
+ */
+function orderSpeed(unit: BoardUnit, units: readonly BoardUnit[]): number {
+  const bonus = auraBonus(unit, units)
+  const penalty = unit.slow ?? 0
+  if (bonus === 0 && penalty === 0) return unit.card.speed
+  return Math.max(1, unit.card.speed + bonus - penalty)
+}
+
+/**
+ * 友方辉煌光环给这名兵加的速度。自己也吃自己的光环，多个光环相加。
+ *
+ * @param unit 被加到的兵
+ * @param units 场上所有兵
+ * @returns 速度加成
+ */
+function auraBonus(unit: BoardUnit, units: readonly BoardUnit[]): number {
+  return units.reduce((sum, other) => {
+    if (other.side !== unit.side) return sum
+    const bonus = skillValue(other.card, 'aura')
+    if (bonus <= 0 || manhattan(unit, other) > other.card.range) return sum
+    return sum + bonus
+  }, 0)
+}
+
+/**
+ * 回合开始排行动顺序。速度先看光环和减速，其余规则仍走原先后。
+ *
+ * @param units 场上所有兵
+ * @returns 两两比较函数
+ */
+function byBattleOrder(units: readonly BoardUnit[]): (left: BoardUnit, right: BoardUnit) => number {
+  return (left, right) => actingOrder(atSpeed(left, units), atSpeed(right, units))
+}
+
+/**
+ * 给排序用的临时卡面。只改速度，不写回场上。
+ *
+ * @param unit 原兵
+ * @param units 场上所有兵
+ * @returns 速度换成结算值后的副本。没变化时就是原兵
+ */
+function atSpeed(unit: BoardUnit, units: readonly BoardUnit[]): BoardUnit {
+  const speed = orderSpeed(unit, units)
+  if (speed === unit.card.speed) return unit
+  return { ...unit, card: { ...unit.card, speed } }
+}
+
+/**
+ * 对若干敌方各打一次。法术免疫会把法术伤害记成 0。
+ *
+ * @param actor 攻击者
+ * @param targets 要打的敌方，按这个顺序结算
+ * @param units 场上的兵
+ * @param turn 正在打的回合
+ * @param log 这一步的文字
+ * @param events 这一步的战报
+ * @param attack 这次伤害的攻击和种类。点数写在 atk 上
+ * @returns 扣血后的兵、第一下的箭头，以及每一击的结果
+ */
+function strikeTargets(
+  actor: BoardUnit,
+  targets: readonly BoardUnit[],
+  units: readonly BoardUnit[],
+  turn: number,
+  log: string[],
+  events: BattleEvent[],
+  attack: { atk: number; kind: AttackKind },
+): { units: BoardUnit[]; strike: BattleStrike | null; hits: { target: BoardUnit; left: number }[] } {
+  let next = units.map((unit) => ({ ...unit }))
+  const hits: { target: BoardUnit; left: number }[] = []
+  let strike: BattleStrike | null = null
+  for (const target of targets) {
+    const live = next.find((unit) => unit.uid === target.uid)
+    if (!live) continue
+    const detail = explainStrike({ ...actor.card, atk: attack.atk, attackKind: attack.kind }, live.card)
+    const left = Math.max(0, live.hp - detail.damage)
+    log.push(`${actor.card.name} 对 ${live.card.name} 造成 ${detail.damage}`)
+    events.push({
+      turn,
+      kind: 'hit',
+      attacker: { side: actor.side, card: actor.card, uid: actor.uid, hp: actor.hp },
+      target: { side: live.side, card: live.card, uid: live.uid, hp: live.hp },
+      detail,
+    })
+    if (left <= 0) {
+      log.push(`${live.card.name} 被击破`)
+      events.push({ turn, kind: 'death', actor: { side: live.side, card: live.card, uid: live.uid, hp: 0 } })
+    }
+    next = next.flatMap((unit) => {
+      if (unit.uid !== live.uid) return [unit]
+      return left > 0 ? [{ ...unit, hp: left }] : []
+    })
+    if (!strike) {
+      strike = {
+        attackerUid: actor.uid,
+        from: { row: actor.row, col: actor.col },
+        to: { row: live.row, col: live.col },
+        targetUid: live.uid,
+        kind: 'damage',
+        amount: detail.damage,
+      }
+    }
+    hits.push({ target: live, left })
+  }
+  return { units: next, strike, hits }
+}
+
+/**
+ * 技能步打完后收成局面。没打中人时不改历史。
+ *
+ * @param state 这一步之前的局面
+ * @param queue 去掉这一步之后的队列
+ * @param uid 施法者
+ * @param units 扣血后的兵
+ * @param log 这一步的文字
+ * @param events 这一步的战报
+ * @param strike 画在棋盘上的那一击。没有时为空
+ * @returns 这一步之后的局面。施法者这一步不移动
+ */
+function damageStep(
+  state: BattleState,
+  queue: string[],
+  uid: string,
+  units: BoardUnit[],
+  log: string[],
+  events: BattleEvent[],
+  strike: BattleStrike | null,
+): BattleState {
+  const actor = state.units.find((unit) => unit.uid === uid)
+  const here = actor ? { row: actor.row, col: actor.col } : { row: 0, col: 0 }
+  const result = judge({ ...state, units }, log, events)
+  return {
+    ...state,
+    result,
+    units,
+    queue: result === 'ongoing' ? queue : [],
+    routes: [{ uid, path: [here] }],
+    strike,
+    log,
+    history: events.length > 0 ? [...state.history, ...events] : state.history,
+  }
+}
+
+/**
+ * 心灵之火。给生命最低的友方加上攻击，自己也算。这一步不移动。
+ *
+ * @param state 加攻击前的局面
+ * @param queue 去掉这一步之后的队列
+ * @param uid 施法者
+ * @returns 加上攻击后的局面
+ */
+function innerFireAction(state: BattleState, queue: string[], uid: string): BattleState {
+  const units = state.units.map((unit) => ({ ...unit }))
+  const actor = units.find((unit) => unit.uid === uid)
+  if (!actor) return { ...state, queue, routes: [], strike: null, log: [] }
+  const amount = skillValue(actor.card, 'innerFire')
+  const allies = [...units].sort((left, right) => left.hp - right.hp || left.uid.localeCompare(right.uid))
+  const target = allies.find((unit) => unit.side === actor.side)
+  const here = { row: actor.row, col: actor.col }
+  if (!target || amount <= 0) return { ...state, queue, routes: [{ uid, path: [here] }], strike: null, log: [] }
+  const buffed = units.map((unit) => (unit.uid === target.uid ? { ...unit, bonusAtk: (unit.bonusAtk ?? 0) + amount } : unit))
+  const text = `${actor.card.name} 使 ${target.card.name} 攻击 +${amount}`
+  return {
+    ...state,
+    units: buffed,
+    queue,
+    routes: [{ uid, path: [here] }],
+    strike: null,
+    log: [text],
+    history: [...state.history, { turn: state.turn, kind: 'note', text }],
+  }
+}
+
+/**
+ * 本回合的绵羊变回原卡。生命保持绵羊时的数值，不超过原卡上限。
+ *
+ * @param units 上回合结束时还在场上的兵
+ * @param turn 新回合序号，写进战报
+ * @param log 本回合开始的文字
+ * @param events 本回合开始的战报
+ * @returns 变回之后的兵
+ */
+function endPolymorph(units: readonly BoardUnit[], turn: number, log: string[], events: BattleEvent[]): BoardUnit[] {
+  return units.map((unit) => {
+    const form = unit.trueForm
+    if (!form) return { ...unit }
+    const text = `${unit.card.name} 变回了 ${form.name}`
+    log.push(text)
+    events.push({ turn, kind: 'note', text })
+    const restored: BoardUnit = { ...unit, card: form, hp: Math.min(unit.hp, form.hp) }
+    delete restored.trueForm
+    return restored
+  })
+}
+
+/**
+ * 变形术。把范围内生命不超过点数、且没有法术免疫的敌方变成绵羊。
+ * 绵羊只留到本回合结束，下回合开始时变回原卡。
+ *
+ * @param state 变形前的局面
+ * @param queue 去掉这一步之后的队列
+ * @param uid 施法者
+ * @returns 变羊之后的局面。没有目标时不写战报
+ */
+function polymorphAction(state: BattleState, queue: string[], uid: string): BattleState {
+  const units = state.units.map((unit) => ({ ...unit }))
+  const actor = units.find((unit) => unit.uid === uid)
+  if (!actor) return { ...state, queue, routes: [], strike: null, log: [] }
+  const limit = skillValue(actor.card, 'polymorph')
+  const here = { row: actor.row, col: actor.col }
+  const foes = units.filter(
+    (unit) =>
+      unit.side !== actor.side &&
+      unit.card.id !== SHEEP_CARD.id &&
+      !hasSkill(unit.card, 'spellImmune') &&
+      unit.hp <= limit &&
+      manhattan(actor, unit) <= actor.card.range,
+  )
+  foes.sort((left, right) => left.hp - right.hp || left.uid.localeCompare(right.uid))
+  const target = foes[0]
+  if (!target) return { ...state, queue, routes: [{ uid, path: [here] }], strike: null, log: [] }
+  const changed = units.map((unit) =>
+    unit.uid === target.uid
+      ? { ...unit, card: SHEEP_CARD, hp: Math.min(unit.hp, SHEEP_CARD.hp), bonusAtk: 0, slow: 0, trueForm: unit.card }
+      : unit,
+  )
+  const text = `${actor.card.name} 把 ${target.card.name} 变成了绵羊`
+  return {
+    ...state,
+    units: changed,
+    queue,
+    routes: [{ uid, path: [here] }],
+    strike: null,
+    log: [text],
+    history: [...state.history, { turn: state.turn, kind: 'note', text }],
+  }
+}
+
+/**
+ * 风暴之锤。对最近的敌方造成法术伤害，没被免疫就取消它本回合剩余行动。
+ *
+ * @param state 出锤前的局面
+ * @param queue 去掉这一步之后的队列
+ * @param uid 施法者
+ * @returns 扣血并可能打断之后的局面
+ */
+function stormBoltAction(state: BattleState, queue: string[], uid: string): BattleState {
+  const units = state.units.map((unit) => ({ ...unit }))
+  const actor = units.find((unit) => unit.uid === uid)
+  if (!actor) return { ...state, queue, routes: [], strike: null, log: [] }
+  const amount = skillValue(actor.card, 'stormBolt')
+  const foes = units.filter((unit) => unit.side !== actor.side)
+  foes.sort((left, right) => manhattan(actor, left) - manhattan(actor, right) || left.hp - right.hp || left.uid.localeCompare(right.uid))
+  const log: string[] = []
+  const events: BattleEvent[] = []
+  if (foes.length === 0 || amount <= 0) return damageStep(state, queue, uid, units, log, events, null)
+  const struck = strikeTargets(actor, [foes[0]], units, state.turn, log, events, { atk: amount, kind: 'spell' })
+  let nextQueue = queue
+  for (const hit of struck.hits) {
+    if (!spellTurnedAway({ ...actor.card, attackKind: 'spell' }, hit.target.card)) nextQueue = dropSteps(nextQueue, hit.target.uid)
+  }
+  return damageStep(state, nextQueue, uid, struck.units, log, events, struck.strike)
+}
+
+/**
+ * 雷霆一击。对相邻敌方造成法术伤害，没被免疫就减速。
+ *
+ * @param state 拍地前的局面
+ * @param queue 去掉这一步之后的队列
+ * @param uid 施法者
+ * @returns 扣血并减速之后的局面
+ */
+function thunderClapAction(state: BattleState, queue: string[], uid: string): BattleState {
+  const units = state.units.map((unit) => ({ ...unit }))
+  const actor = units.find((unit) => unit.uid === uid)
+  if (!actor) return { ...state, queue, routes: [], strike: null, log: [] }
+  const amount = skillValue(actor.card, 'thunderClap')
+  const foes = units.filter((unit) => unit.side !== actor.side && manhattan(actor, unit) === 1)
+  foes.sort((left, right) => left.uid.localeCompare(right.uid))
+  const log: string[] = []
+  const events: BattleEvent[] = []
+  if (foes.length === 0 || amount <= 0) return damageStep(state, queue, uid, units, log, events, null)
+  const struck = strikeTargets(actor, foes, units, state.turn, log, events, { atk: amount, kind: 'spell' })
+  let next = struck.units
+  for (const hit of struck.hits) {
+    if (hit.left <= 0 || spellTurnedAway({ ...actor.card, attackKind: 'spell' }, hit.target.card)) continue
+    next = next.map((unit) => (unit.uid === hit.target.uid ? { ...unit, slow: Math.max(unit.slow ?? 0, CLAP_SLOW) } : unit))
+  }
+  return damageStep(state, queue, uid, next, log, events, struck.strike)
+}
+
+/**
+ * 暴风雪。对攻击范围内的每个敌方造成法术伤害。魔甲和法术免疫都生效。
+ *
+ * @param state 下雪前的局面
+ * @param queue 去掉这一步之后的队列
+ * @param uid 施法者
+ * @returns 扣血之后的局面。这一步不移动
+ */
+function blizzardAction(state: BattleState, queue: string[], uid: string): BattleState {
+  const units = state.units.map((unit) => ({ ...unit }))
+  const actor = units.find((unit) => unit.uid === uid)
+  if (!actor) return { ...state, queue, routes: [], strike: null, log: [] }
+  const amount = skillValue(actor.card, 'blizzard')
+  const foes = units.filter((unit) => unit.side !== actor.side && manhattan(actor, unit) <= actor.card.range)
+  foes.sort((left, right) => manhattan(actor, left) - manhattan(actor, right) || left.uid.localeCompare(right.uid))
+  const log: string[] = []
+  const events: BattleEvent[] = []
+  if (foes.length === 0 || amount <= 0) return damageStep(state, queue, uid, units, log, events, null)
+  const struck = strikeTargets(actor, foes, units, state.turn, log, events, { atk: amount, kind: 'spell' })
+  return damageStep(state, queue, uid, struck.units, log, events, struck.strike)
 }
 

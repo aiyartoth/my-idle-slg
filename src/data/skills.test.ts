@@ -3,6 +3,26 @@ import { strikeDamage } from '../realm/battle'
 import { ALL_CARDS } from './cardCatalog'
 import { BASIC_UNIT_CARDS, INFANTRY_CARD, skillLine, type CardSkill, type UnitCardData } from './cards'
 
+/** 不改普攻伤害、但在战斗里另有结算的技能。改了普攻的不放这里 */
+const SETTLED_SKILL_KINDS = new Set<CardSkill['kind']>([
+  'heal',
+  'vigilance',
+  'bean',
+  'lightning',
+  'charge',
+  'innerFire',
+  'slow',
+  'polymorph',
+  'splash',
+  'siege',
+  'fly',
+  'blizzard',
+  'aura',
+  'stormBolt',
+  'thunderClap',
+  'bash',
+])
+
 describe('技能是否进了战斗', () => {
   it('改变伤害的技能算生效，不改伤害且没有独立结算的必须标未实现', () => {
     const heavy = BASIC_UNIT_CARDS.find((card) => card.id === 'heavy-infantry')
@@ -11,7 +31,7 @@ describe('技能是否进了战斗', () => {
     const spell: UnitCardData = { ...INFANTRY_CARD, id: 'spell-dummy', attackKind: 'spell', atk: 4, skills: [] }
     const foes = [INFANTRY_CARD, heavy, ward, spell]
     const missed = ALL_CARDS.flatMap((card) => card.skills.map((skill) => ({ card, skill }))).flatMap(({ card, skill }) => {
-      if (skill.kind === 'heal' || skill.kind === 'vigilance' || skill.kind === 'bean' || skill.kind === 'lightning') {
+      if (skill.kind && SETTLED_SKILL_KINDS.has(skill.kind)) {
         return skill.unimplemented ? [`${card.name} ${skill.name} 已实现，不应标未实现`] : []
       }
       const active = changesDamage(card, skill, foes)
@@ -23,6 +43,16 @@ describe('技能是否进了战斗', () => {
     expect(missed).toEqual([])
     expect(ALL_CARDS.find((card) => card.id === 'temple-knight')?.skills.map((skill) => skill.kind)).toEqual(['heal', 'vigilance'])
     expect(ALL_CARDS.find((card) => card.id === 'zhang-jiao')?.skills.map((skill) => skill.kind)).toEqual(['bean', 'lightning'])
+    expect(ALL_CARDS.find((card) => card.id === 'knight')?.skills.map((skill) => skill.kind)).toEqual(['plate', 'charge'])
+    expect(ALL_CARDS.find((card) => card.id === 'priest')?.skills.map((skill) => skill.kind)).toEqual(['heal', 'innerFire'])
+    expect(ALL_CARDS.find((card) => card.id === 'sorceress')?.skills.map((skill) => skill.kind)).toEqual(['slow', 'polymorph'])
+    expect(ALL_CARDS.find((card) => card.id === 'spell-breaker')?.skills.map((skill) => skill.kind)).toEqual(['spellImmune', 'feedback'])
+    expect(ALL_CARDS.find((card) => card.id === 'mortar-team')?.skills.map((skill) => skill.kind)).toEqual(['splash'])
+    expect(ALL_CARDS.find((card) => card.id === 'siege-engine')?.skills.map((skill) => skill.kind)).toEqual(['plate', 'siege'])
+    expect(ALL_CARDS.find((card) => card.id === 'flying-machine')?.skills.map((skill) => skill.kind)).toEqual(['fly', 'splash'])
+    expect(ALL_CARDS.find((card) => card.id === 'gryphon-rider')?.skills.map((skill) => skill.kind)).toEqual(['fly', 'siege'])
+    expect(ALL_CARDS.find((card) => card.id === 'archmage')?.skills.map((skill) => skill.kind)).toEqual(['blizzard', 'bean', 'aura'])
+    expect(ALL_CARDS.find((card) => card.id === 'mountain-king')?.skills.map((skill) => skill.kind)).toEqual(['stormBolt', 'thunderClap', 'bash'])
   })
 })
 

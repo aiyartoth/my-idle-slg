@@ -387,7 +387,7 @@ function DamageBlock({ detail }: { detail: DamageDetail }) {
     <section className="mt-3 border-t border-[#e4dccd] pt-2 text-sm leading-6">
       <h4 className="font-semibold">伤害</h4>
       <p>基础攻击 {detail.baseAtk}</p>
-      <p>额外攻击 {detail.extraAtk}（科技、增益暂无）</p>
+      <p>额外攻击 {detail.extraAtk}</p>
       <p>
         {armorName} {detail.armor}，{pierceName} {detail.pierce}
       </p>
@@ -433,6 +433,8 @@ interface ShownUnit {
   hp: number
   row: number
   col: number
+  /** 心灵之火等临时攻击。没有时棋盘上只显示卡面攻击 */
+  bonusAtk?: number
 }
 
 /**
@@ -515,7 +517,7 @@ function Board({
         >
           <span className="line-clamp-2 w-full px-px text-center text-[9px] leading-[1.05] font-semibold">{unit.card.name}</span>
           <span className="text-[9px] leading-none tabular-nums">
-            {unit.card.atk}/{unit.hp}
+            {unit.card.atk + (unit.bonusAtk ?? 0)}/{unit.hp}
           </span>
         </div>
       ))}
@@ -725,7 +727,7 @@ function useSlidingUnits(
       const fallback = live ?? unit
       const path = routeOf.get(uid) ?? [{ row: fallback.row, col: fallback.col }]
       const point = path[Math.min(step, path.length - 1)]
-      return { uid, side: unit.side, card: unit.card, hp: unit.hp, row: point.row, col: point.col }
+      return { uid, side: unit.side, card: unit.card, hp: unit.hp, bonusAtk: unit.bonusAtk, row: point.row, col: point.col }
     }
     const maxStep = Math.max(0, ...ids.map((uid) => (routeOf.get(uid)?.length ?? 1) - 1))
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -792,7 +794,7 @@ function keepStruckTarget(live: readonly ShownUnit[], before: Map<string, BoardU
   const old = before.get(strike.targetUid)
   if (!old) return [...live]
   const hp = strike.kind === 'heal' ? old.hp + strike.amount : Math.max(0, old.hp - strike.amount)
-  return [...live, { uid: old.uid, side: old.side, card: old.card, hp, row: strike.to.row, col: strike.to.col }]
+  return [...live, { uid: old.uid, side: old.side, card: old.card, hp, bonusAtk: old.bonusAtk, row: strike.to.row, col: strike.to.col }]
 }
 
 /**
@@ -802,7 +804,7 @@ function keepStruckTarget(live: readonly ShownUnit[], before: Map<string, BoardU
  * @returns 不再滑动的显示数据
  */
 function toShown(unit: BoardUnit): ShownUnit {
-  return { uid: unit.uid, side: unit.side, card: unit.card, hp: unit.hp, row: unit.row, col: unit.col }
+  return { uid: unit.uid, side: unit.side, card: unit.card, hp: unit.hp, bonusAtk: unit.bonusAtk, row: unit.row, col: unit.col }
 }
 
 /**
@@ -939,5 +941,5 @@ function cellLabel(tile: TileKind): string {
  * @returns 阵营、名字和生命
  */
 function unitLabel(unit: ShownUnit): string {
-  return `${unit.side === 'player' ? '我方' : '黄巾'}${unit.card.name}，攻击 ${unit.card.atk}，血量 ${unit.hp}`
+  return `${unit.side === 'player' ? '我方' : '黄巾'}${unit.card.name}，攻击 ${unit.card.atk + (unit.bonusAtk ?? 0)}，血量 ${unit.hp}`
 }

@@ -53,9 +53,10 @@ export const RARITY_EDGE_CLASS: Record<CardRarity, string> = {
 
 /** 按卡牌 id 用当前稀有度。改配置后，旧档里这几张牌也会跟着变。黄巾兵沿用对应基础兵 */
 const RARITY_BY_ID: Record<string, CardRarity> = {
-  /** 步兵、黄巾步兵 */
+  /** 步兵、黄巾步兵、水元素 */
   infantry: 'white',
   'yellow-infantry': 'white',
+  'water-elemental': 'white',
   /** 弓箭手、黄巾弓箭手、火枪手、法师 */
   archer: 'green',
   'yellow-archer': 'green',
@@ -64,10 +65,22 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   /** 重甲步兵、魔卫 */
   'heavy-infantry': 'blue',
   'ward-guard': 'blue',
-  /** 圣殿骑士 */
+  /** 圣殿骑士、大法师 */
   'temple-knight': 'purple',
-  /** 天公将军张角 */
+  archmage: 'purple',
+  /** 天公将军张角、山丘之王 */
   'zhang-jiao': 'orange',
+  'mountain-king': 'orange',
+  /** 牧师、飞行器 */
+  priest: 'green',
+  'flying-machine': 'green',
+  /** 骑士、女巫、破法者、迫击炮小队、攻城器械、狮鹫骑士 */
+  knight: 'blue',
+  sorceress: 'blue',
+  'spell-breaker': 'blue',
+  'mortar-team': 'blue',
+  'siege-engine': 'blue',
+  'gryphon-rider': 'blue',
 }
 
 /**
@@ -92,13 +105,19 @@ function isCardRarity(value: unknown): value is CardRarity {
   return value === 'white' || value === 'green' || value === 'blue' || value === 'purple' || value === 'orange' || value === 'red'
 }
 
-/** 卡牌种族。开局步兵是人类 */
-export type CardRace = 'human'
+/** 卡牌种族。人类阵营里再分人类、矮人、侏儒和高等精灵 */
+export type CardRace = 'human' | 'dwarf' | 'gnome' | 'highElf'
 
 /** 种族写在卡面类型行上的名字 */
 export const RACE_LABEL: Record<CardRace, string> = {
   /** 人类 */
   human: '人类',
+  /** 矮人 */
+  dwarf: '矮人',
+  /** 侏儒 */
+  gnome: '侏儒',
+  /** 高等精灵 */
+  highElf: '高等精灵',
 }
 
 /** 伤害种类。物理伤害吃重甲，法术伤害吃魔甲 */
@@ -166,8 +185,31 @@ export interface UnitCardData {
 /** 护甲和穿透的种类。点数写进技能名，效果句按种类生成，避免两处数字对不上 */
 export type ArmorSkillKind = 'pierce' | 'spellPierce' | 'plate' | 'ward'
 
-/** 战斗里按种类识别的技能。护甲四种改伤害，治疗、警戒、撒豆成兵和雷电另走结算 */
-export type SkillKind = ArmorSkillKind | 'heal' | 'vigilance' | 'bean' | 'lightning'
+/**
+ * 战斗里按种类识别的技能。
+ * 护甲四种、法术免疫和反馈会改伤害。
+ * 其余种类各自有行动或移动结算，不写进普攻公式。
+ */
+export type SkillKind =
+  | ArmorSkillKind
+  | 'heal'
+  | 'vigilance'
+  | 'bean'
+  | 'lightning'
+  | 'charge'
+  | 'innerFire'
+  | 'slow'
+  | 'polymorph'
+  | 'spellImmune'
+  | 'feedback'
+  | 'splash'
+  | 'siege'
+  | 'fly'
+  | 'blizzard'
+  | 'aura'
+  | 'stormBolt'
+  | 'thunderClap'
+  | 'bash'
 
 /** 破甲、法术穿透、重甲、魔甲的展示名和效果句 */
 const ARMOR_SKILL_TEXT: Record<ArmorSkillKind, { name: string; effect: (value: number) => string }> = {
