@@ -6,6 +6,9 @@ export type DeckSortKey = 'rarity' | 'race' | 'profession' | 'cd'
 /** 上箭头是升序，下箭头是降序 */
 export type DeckSortDir = 'asc' | 'desc'
 
+/** 打开卡组和图鉴时默认稀有度升序，上箭头处于选中，列表会按从低到高排 */
+export const DEFAULT_SORT_DIR: DeckSortDir = 'asc'
+
 /** 稀有度从低到高。升序按这个序号排 */
 const RARITY_RANK: Record<CardRarity, number> = {
   /** 白 */
