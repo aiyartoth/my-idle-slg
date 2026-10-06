@@ -3,6 +3,7 @@ import { ALLIANCE_CARDS } from './alliance'
 import { BASIC_UNIT_CARDS, TEMPLE_KNIGHT_CARD, type UnitCardData } from './cards'
 import { CAMPAIGN_CARDS, CAMPAIGN_TOKEN_CARDS } from './campaign'
 import { LEGEND_CARDS, LEGEND_TOKEN_CARDS } from './legends'
+import { SIDE_RACE_CARDS } from './sideRaces'
 import { WOW_CARDS } from './wow'
 
 /** 已经设计的全部卡牌。GM 按名字查找，图鉴也用这份名单 */
@@ -15,6 +16,7 @@ export const ALL_CARDS: readonly UnitCardData[] = [
   ...LEGEND_TOKEN_CARDS,
   ...CAMPAIGN_CARDS,
   ...CAMPAIGN_TOKEN_CARDS,
+  ...SIDE_RACE_CARDS,
   YELLOW_INFANTRY_CARD,
   YELLOW_ARCHER_CARD,
   ZHANG_JIAO_CARD,

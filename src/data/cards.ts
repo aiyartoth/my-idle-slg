@@ -73,11 +73,20 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   infantry: 'white',
   'yellow-infantry': 'white',
   'water-elemental': 'white',
-  /** 弓箭手、黄巾弓箭手、火枪手、法师 */
+  /** 弓箭手、黄巾弓箭手、火枪手、法师、侏儒技师、侏儒修理兵、地狱犬、魅魔、高等精灵弓手、高等精灵剑士、矮人猎手、远行者、角鹰兽 */
   archer: 'green',
   'yellow-archer': 'green',
   musketeer: 'green',
   mage: 'green',
+  'gnome-tinker': 'green',
+  'gnome-repair': 'green',
+  felhound: 'green',
+  succubus: 'green',
+  'high-elf-archer': 'green',
+  'high-elf-swordsman': 'green',
+  'dwarf-hunter': 'green',
+  farstrider: 'green',
+  hippogryph: 'green',
   /** 重甲步兵、魔卫 */
   'heavy-infantry': 'blue',
   'ward-guard': 'blue',
@@ -91,23 +100,34 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   priest: 'green',
   'flying-machine': 'green',
   hunter: 'green',
-  /** 骑士、女巫、破法者、迫击炮小队、攻城器械、狮鹫骑士 */
+  /** 骑士、女巫、破法者、迫击炮小队、攻城器械、狮鹫骑士、末日守卫、恶魔卫士、龙鹰、血骑士、魔导师、奇美拉、火元素、树妖 */
   knight: 'blue',
   sorceress: 'blue',
   'spell-breaker': 'blue',
   'mortar-team': 'blue',
   'siege-engine': 'blue',
   'gryphon-rider': 'blue',
+  'doom-guard': 'blue',
+  'fel-guard': 'blue',
+  dragonhawk: 'blue',
+  'blood-knight': 'blue',
+  magister: 'blue',
+  chimaera: 'blue',
+  'fire-elemental': 'blue',
+  dryad: 'blue',
   /** 战士、潜行者、暗影牧师、冰霜法师、术士 */
   warrior: 'blue',
   rogue: 'blue',
   'shadow-priest': 'blue',
   'frost-mage': 'blue',
   warlock: 'blue',
-  /** 圣骑士加文拉德、萨满德雷克塔尔、德鲁伊纳拉雷克斯 */
+  /** 圣骑士加文拉德、萨满德雷克塔尔、德鲁伊纳拉雷克斯、格尔宾、温蕾萨、米尔豪斯 */
   paladin: 'purple',
   shaman: 'purple',
   druid: 'purple',
+  mekkatorque: 'purple',
+  vereesa: 'purple',
+  millhouse: 'purple',
   /** 死亡骑士达里安 */
   'death-knight': 'orange',
   /** 魔兽传奇生物。召唤物是白 */

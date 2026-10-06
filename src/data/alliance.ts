@@ -192,7 +192,7 @@ export const SIEGE_ENGINE_CARD: UnitCardData = {
 
 /**
  * 飞行器。侏儒机械，能飞过河流和石头，炸弹带一小圈溅射。
- * 人类阵营里侏儒只有这一只量产单位。
+ * 侏儒的量产机械。
  */
 export const FLYING_MACHINE_CARD: UnitCardData = {
   id: 'flying-machine',

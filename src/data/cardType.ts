@@ -22,18 +22,26 @@ const TYPE_LINE_BY_ID: Record<string, string> = {
   'temple-knight': '生物-人类/骑士',
   /** 牧师也是法师，破法者反馈会打到 */
   priest: '生物-人类/法师/牧师',
-  /** 高等精灵女巫，同时是法师 */
+  /** 高等精灵女巫，同时是法师。弓手、剑士和温蕾萨不是法师 */
   sorceress: '生物-高等精灵/法师/女巫',
+  'high-elf-archer': '生物-高等精灵/弓手',
+  'high-elf-swordsman': '生物-高等精灵/剑士',
+  vereesa: '传奇生物-高等精灵/猎人',
   /** 破法者 */
   'spell-breaker': '生物-高等精灵/破法者',
   /** 矮人炮组，人还在，不算载具 */
   'mortar-team': '生物-矮人/炮兵',
   /** 矮人蒸汽坦克 */
   'siege-engine': '机械-矮人/攻城/载具',
-  /** 侏儒旋翼机 */
+  /** 侏儒旋翼机、技师、修理兵、格尔宾、米尔豪斯 */
   'flying-machine': '机械-侏儒/飞行器/载具',
-  /** 矮人狮鹫骑士 */
+  'gnome-tinker': '生物-侏儒/技师',
+  'gnome-repair': '生物-侏儒/修理兵',
+  mekkatorque: '传奇生物-侏儒/技师',
+  millhouse: '传奇生物-侏儒/法师',
+  /** 矮人狮鹫骑士、步枪猎手 */
   'gryphon-rider': '生物-矮人/狮鹫',
+  'dwarf-hunter': '生物-矮人/猎人',
   /** 英雄：瓦格斯、张角、穆拉丁、加文拉德、德雷克塔尔、纳拉雷克斯、达里安 */
   archmage: '传奇生物-人类/法师',
   'zhang-jiao': '传奇生物-人类/法师',
@@ -52,15 +60,28 @@ const TYPE_LINE_BY_ID: Record<string, string> = {
   tyrande: '传奇生物-暗夜精灵/法师/祭司',
   guldan: '传奇生物-兽人/法师/术士',
   kaelthas: '传奇生物-血精灵/法师',
+  /** 龙鹰、血骑士、魔导师、远行者。凤凰仍是元素 */
+  dragonhawk: '生物-血精灵/龙鹰',
+  'blood-knight': '生物-血精灵/圣骑士',
+  magister: '生物-血精灵/法师',
+  farstrider: '生物-血精灵/弓手',
   rexxar: '传奇生物-兽人/猎人',
   /** 召唤物。凤凰单独成元素，和卡面种族分开 */
   'ghost-wolf': '生物-野兽',
   ghoul: '生物-亡灵/食尸鬼',
   banshee: '生物-亡灵/女妖',
   infernal: '生物-恶魔',
+  /** 地狱犬、末日守卫、恶魔卫士、魅魔 */
+  felhound: '生物-恶魔/地狱犬',
+  'doom-guard': '生物-恶魔/末日守卫',
+  'fel-guard': '生物-恶魔/卫士',
+  succubus: '生物-恶魔/魅魔',
   phoenix: '元素',
   'phoenix-egg': '元素',
   misha: '生物-野兽',
+  /** 奇美拉、角鹰兽按野兽归类，不进暗夜精灵 */
+  chimaera: '生物-野兽/奇美拉',
+  hippogryph: '生物-野兽/角鹰兽',
   /** 战士、猎人、潜行者。暗影牧师、冰霜法师、术士带法师子类，反馈会打到 */
   warrior: '生物-人类/战士',
   hunter: '生物-人类/猎人',
@@ -68,8 +89,9 @@ const TYPE_LINE_BY_ID: Record<string, string> = {
   'shadow-priest': '生物-人类/法师/牧师',
   'frost-mage': '生物-人类/法师',
   warlock: '生物-人类/法师/术士',
-  /** 水元素单独成类 */
+  /** 水元素、火元素单独成类 */
   'water-elemental': '元素',
+  'fire-elemental': '元素',
   /** 变形术变出来的绵羊 */
   sheep: '生物-野兽',
   /** 魔兽争霸 3 战役兵。巫医和亡灵巫师不带法师子类，反馈打不到 */
@@ -77,6 +99,7 @@ const TYPE_LINE_BY_ID: Record<string, string> = {
   raider: '生物-兽人/掠夺者',
   'witch-doctor': '生物-兽人/巫医',
   huntress: '生物-暗夜精灵/女猎手',
+  dryad: '生物-暗夜精灵/树妖',
   tauren: '生物-兽人/战士',
   kodo: '生物-兽人/科多兽',
   abomination: '生物-亡灵/憎恶',
