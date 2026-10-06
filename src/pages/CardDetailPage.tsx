@@ -16,6 +16,7 @@ export default function CardDetailPage() {
   const navigate = useNavigate()
   const player = useSyncExternalStore(subscribePlayer, getPlayerSnapshot)
   const [joined, setJoined] = useState<UnitCardData | null>(null)
+  const [legendBlocked, setLegendBlocked] = useState(false)
   const [joinedFor, setJoinedFor] = useState('')
   const seenRef = useRef<{ id: string; card: UnitCardData } | null>(null)
   const fromDeck = place === 'deck'
@@ -25,6 +26,7 @@ export default function CardDetailPage() {
   if (joinedFor !== routeId) {
     setJoinedFor(routeId)
     setJoined(null)
+    setLegendBlocked(false)
   }
   if (card && seenRef.current?.id !== routeId) seenRef.current = { id: routeId, card }
   if (!card && seenRef.current && seenRef.current.id !== routeId) seenRef.current = null
@@ -53,6 +55,11 @@ export default function CardDetailPage() {
       </div>
       {!fromDeck ? <p className="mt-3 text-sm text-[#c8b49a]">数量 {bagItem?.kind === 'card' ? bagItem.count : 0}</p> : null}
       {joined ? <JoinedNotice card={joined} /> : null}
+      {legendBlocked ? (
+        <p className="mt-3 rounded-lg bg-[#f4efe6] px-3 py-2 text-sm font-semibold text-[#241f1a]" role="status">
+          卡组已包含该传奇卡
+        </p>
+      ) : null}
       <div className="mt-4">
         {fromDeck ? (
           <button
@@ -70,7 +77,14 @@ export default function CardDetailPage() {
             type="button"
             className="rounded-lg bg-[#f4efe6] px-3 py-2 text-sm font-semibold text-[#241f1a]"
             onClick={() => {
-              if (!cardId || !shown || !useBagCard(cardId)) return
+              if (!cardId || !shown) return
+              const used = useBagCard(cardId)
+              if (used === 'legend') {
+                setLegendBlocked(true)
+                return
+              }
+              if (used !== 'added') return
+              setLegendBlocked(false)
               setJoined(shown)
             }}
           >

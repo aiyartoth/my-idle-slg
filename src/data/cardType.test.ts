@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ALL_CARDS } from './cardCatalog'
-import { cardTypeLine, isMageType } from './cardType'
+import { cardTypeLine, isLegendCard, isMageType } from './cardType'
 
 describe('卡面类型行', () => {
   it('按万智牌的类别和子类来写', () => {
@@ -10,6 +10,8 @@ describe('卡面类型行', () => {
     expect(line('女巫')).toBe('生物-高等精灵/法师/女巫')
     expect(line('破法者')).toBe('生物-高等精灵/破法者')
     expect(line('大法师')).toBe('传奇生物-人类/法师')
+    expect(isLegendCard(ALL_CARDS.find((card) => card.name === '大法师')!)).toBe(true)
+    expect(isLegendCard(ALL_CARDS.find((card) => card.name === '步兵')!)).toBe(false)
     expect(line('飞行器')).toBe('机械-侏儒/飞行器/载具')
     expect(line('攻城器械')).toBe('机械-矮人/攻城/载具')
     expect(line('水元素')).toBe('元素')
@@ -21,6 +23,17 @@ describe('卡面类型行', () => {
     expect(line('暗影牧师')).toBe('生物-人类/法师/牧师')
     expect(line('术士')).toBe('生物-人类/法师/术士')
     expect(line('死亡骑士')).toBe('传奇生物-人类/死亡骑士')
+    expect(line('先知萨尔')).toBe('传奇生物-兽人/萨满')
+    expect(line('背叛者伊利丹')).toBe('传奇生物-暗夜精灵/恶魔猎手')
+    expect(line('太阳之王凯尔萨斯')).toBe('传奇生物-血精灵/法师')
+    expect(line('凤凰')).toBe('元素')
+    expect(line('凤凰蛋')).toBe('元素')
+    expect(line('米莎')).toBe('生物-野兽')
+    expect(line('兽人步兵')).toBe('生物-兽人/步兵')
+    expect(line('女猎手')).toBe('生物-暗夜精灵/女猎手')
+    expect(line('冰霜巨龙')).toBe('生物-亡灵/冰霜巨龙')
+    expect(line('山岭巨人')).toBe('生物-暗夜精灵/巨人')
+    expect(line('骷髅')).toBe('生物-亡灵/骷髅')
   })
 
   it('图鉴里每张牌都有类型行', () => {
@@ -33,11 +46,17 @@ describe('卡面类型行', () => {
     expect(isMageType(card('女巫'))).toBe(true)
     expect(isMageType(card('法师'))).toBe(true)
     expect(isMageType(card('破法者'))).toBe(false)
+    expect(isMageType(card('巫医'))).toBe(false)
+    expect(isMageType(card('亡灵巫师'))).toBe(false)
     expect(isMageType(card('水元素'))).toBe(false)
     expect(isMageType(card('冰霜法师'))).toBe(true)
     expect(isMageType(card('术士'))).toBe(true)
     expect(isMageType(card('暗影牧师'))).toBe(true)
     expect(isMageType(card('萨满'))).toBe(false)
     expect(isMageType(card('死亡骑士'))).toBe(false)
+    expect(isMageType(card('大法师吉安娜'))).toBe(true)
+    expect(isMageType(card('污染者古尔丹'))).toBe(true)
+    expect(isMageType(card('月神祭司泰兰德'))).toBe(true)
+    expect(isMageType(card('先知萨尔'))).toBe(false)
   })
 })

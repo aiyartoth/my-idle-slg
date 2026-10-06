@@ -1,6 +1,6 @@
 import type { UnitCardData } from '../data/cards'
 import { rollClearLoot, type RealmLoot } from '../data/drops'
-import { getBaseHp, getDeckCards, grantBattleLoot, noteBattleResult, recordRealmClear } from '../data/player'
+import { getBaseHp, getDeckCards, grantBattleLoot, noteBattleResult, recordRealmClear, releaseExtraLegends } from '../data/player'
 import { advanceBattle, type BattleState } from './battle'
 import { createYellowTurbanBattle, realmName } from './yellowTurban'
 
@@ -88,6 +88,7 @@ export function subscribeSession(listener: () => void): () => void {
  */
 export function ensureYellowTurbanBattle(): void {
   if (session.status !== 'idle') return
+  releaseExtraLegends()
   battleStartedAt = Date.now()
   publish({
     status: 'running',

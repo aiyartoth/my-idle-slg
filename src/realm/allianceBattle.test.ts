@@ -51,8 +51,8 @@ describe('人类阵营技能', () => {
   it('骑士移动后冲锋加伤，站着打就只有面板攻击', () => {
     const charging = act(
       [
-        unit({ uid: 'k', side: 'player', card: { ...KNIGHT_CARD, move: 2 }, row: 6, col: 4 }),
-        unit({ uid: 'e', side: 'enemy', card: { ...INFANTRY_CARD, move: 0 }, row: 4, col: 4, hp: 9 }),
+        unit({ uid: 'k', side: 'player', card: { ...KNIGHT_CARD, move: 2 }, row: 2, col: 5 }),
+        unit({ uid: 'e', side: 'enemy', card: { ...INFANTRY_CARD, move: 0 }, row: 1, col: 7, hp: 9 }),
       ],
       ['k'],
     )
@@ -192,11 +192,11 @@ describe('人类阵营技能', () => {
   })
 
   it('攻城器械和狮鹫骑士打大本营时加上炮击', () => {
-    const tank = act([unit({ uid: 't', side: 'player', card: { ...SIEGE_ENGINE_CARD, move: 0 }, row: 3, col: 4 })], ['t'])
+    const tank = act([unit({ uid: 't', side: 'player', card: { ...SIEGE_ENGINE_CARD, move: 0 }, row: 3, col: 8 })], ['t'])
     expect(tank.enemyBaseHp).toBe(4)
     expect(tank.strike).toMatchObject({ amount: 6 })
 
-    const gryphon = act([unit({ uid: 'g', side: 'player', card: { ...GRYPHON_RIDER_CARD, move: 0 }, row: 2, col: 4 })], ['g'])
+    const gryphon = act([unit({ uid: 'g', side: 'player', card: { ...GRYPHON_RIDER_CARD, move: 0 }, row: 2, col: 8 })], ['g'])
     expect(gryphon.strike).toMatchObject({ amount: 6 })
   })
 

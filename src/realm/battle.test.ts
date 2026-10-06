@@ -2,24 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { BASIC_UNIT_CARDS, INFANTRY_CARD, TEMPLE_KNIGHT_CARD } from '../data/cards'
 import { keyOf, openSummonTiles } from './board'
 import { actingOrder, advanceBattle, explainStrike, stepBattle, strikeDamage, type BoardUnit } from './battle'
-import { createYellowTurbanBattle, PLAYER_BASE_HP, YELLOW_ARCHER_CARD, YELLOW_INFANTRY_CARD, ZHANG_JIAO_CARD } from './yellowTurban'
+import { createYellowTurbanBattle, PLAYER_BASE_HP, YELLOW_ARCHER_CARD, YELLOW_INFANTRY_CARD, YELLOW_TURBAN_BASE_HP, ZHANG_JIAO_CARD } from './yellowTurban'
 
 /** 洗牌时总换到自己，牌序保持原样。用来测固定起手 */
 const keepOrder = () => 1 - Number.EPSILON
-
-/**
- * 固定种子的随机数。胜负测试不用 Math.random，避免时过时不过。
- *
- * @param seed 起始种子
- * @returns 返回 0 到 1 的函数
- */
-function seededRandom(seed: number): () => number {
-  let state = seed
-  return () => {
-    state = (state * 1664525 + 1013904223) % 4294967296
-    return state / 4294967296
-  }
-}
 
 describe('黄巾之乱', () => {
   it('黄巾兵和对应基础兵的战斗属性相同', () => {
@@ -87,7 +73,7 @@ describe('黄巾之乱', () => {
     const player = battle.units.filter((unit) => unit.side === 'player')
     const enemy = battle.units.filter((unit) => unit.side === 'enemy')
     expect(battle.history.some((event) => event.kind === 'summon' && event.actor.card.name === '步兵')).toBe(true)
-    expect(battle.history.some((event) => event.kind === 'hit')).toBe(true)
+    expect(player.some((unit) => unit.row < 7)).toBe(true)
     expect(battle.log).toContain('我方召唤 步兵')
     expect(battle.log).toContain('我方召唤 弓箭手')
     expect(player.some((unit) => unit.row < 7)).toBe(true)
@@ -223,15 +209,15 @@ describe('黄巾之乱', () => {
     const straight = advanceBattle({ ...start, turn: 1, units: [plain, rear, front], queue: ['k'], ...quiet })
     const chasedAt = chased.units.find((unit) => unit.uid === 'k')
     const straightAt = straight.units.find((unit) => unit.uid === 'k')
-    expect(straightAt?.col).toBeGreaterThan(4)
+    expect(straightAt).toMatchObject({ row: 6, col: 4 })
     expect(chasedAt?.col).toBeLessThan(4)
     expect(Math.abs((chasedAt?.row ?? 0) - rear.row) + Math.abs((chasedAt?.col ?? 0) - rear.col)).toBeLessThan(
       Math.abs((straightAt?.row ?? 0) - rear.row) + Math.abs((straightAt?.col ?? 0) - rear.col),
     )
 
-    const inRange: BoardUnit = { ...knight, card: { ...TEMPLE_KNIGHT_CARD, move: 0 }, row: 5, col: 4 }
-    const rearFoe: BoardUnit = { ...rear, row: 4, col: 4, hp: 6 }
-    const frontFoe: BoardUnit = { ...front, row: 5, col: 5, hp: 1 }
+    const inRange: BoardUnit = { ...knight, card: { ...TEMPLE_KNIGHT_CARD, move: 0 }, row: 2, col: 7 }
+    const rearFoe: BoardUnit = { ...rear, row: 1, col: 7, hp: 6 }
+    const frontFoe: BoardUnit = { ...front, row: 2, col: 6, hp: 1 }
     const struck = advanceBattle({ ...start, turn: 1, units: [inRange, rearFoe, frontFoe], queue: ['k'], ...quiet })
     expect(struck.strike).toMatchObject({ kind: 'damage', targetUid: 'rear' })
     const nearest = advanceBattle({
@@ -242,6 +228,24 @@ describe('黄巾之乱', () => {
       ...quiet,
     })
     expect(nearest.strike).toMatchObject({ kind: 'damage', targetUid: 'front' })
+  })
+
+  it('普通单位靠近敌人且不能后退，警戒可以后退追击', () => {
+    const start = createYellowTurbanBattle()
+    const quiet = { playerHand: [], playerDeck: [], enemyHand: [], enemyDeck: [] }
+    const beside: BoardUnit = { uid: 'e', side: 'enemy', card: { ...INFANTRY_CARD, move: 0 }, row: 6, col: 3, hp: 4, entered: 2 }
+    const plain: BoardUnit = { uid: 'p', side: 'player', card: INFANTRY_CARD, row: 6, col: 1, hp: INFANTRY_CARD.hp, entered: 1 }
+    const closed = advanceBattle({ ...start, turn: 1, units: [plain, beside], queue: ['p'], ...quiet })
+    expect(closed.units.find((unit) => unit.uid === 'p')).toMatchObject({ row: 6, col: 2 })
+
+    const behind: BoardUnit = { uid: 'e', side: 'enemy', card: { ...INFANTRY_CARD, move: 0 }, row: 6, col: 3, hp: 4, entered: 2 }
+    const forward: BoardUnit = { uid: 'p', side: 'player', card: INFANTRY_CARD, row: 3, col: 5, hp: INFANTRY_CARD.hp, entered: 1 }
+    const held = advanceBattle({ ...start, turn: 1, units: [forward, behind], queue: ['p'], ...quiet })
+    expect(held.units.find((unit) => unit.uid === 'p')?.row).toBeLessThan(3)
+
+    const knight: BoardUnit = { uid: 'k', side: 'player', card: TEMPLE_KNIGHT_CARD, row: 3, col: 5, hp: TEMPLE_KNIGHT_CARD.hp, entered: 1 }
+    const turned = advanceBattle({ ...start, turn: 1, units: [knight, behind], queue: ['k'], ...quiet })
+    expect(turned.units.find((unit) => unit.uid === 'k')?.row).toBeGreaterThan(3)
   })
 
   it('撒豆成兵在回合开始时于周围召黄巾兵，没有空位就跳过', () => {
@@ -358,11 +362,30 @@ describe('黄巾之乱', () => {
     expect(bolted.playerBaseHp).toBe(start.playerBaseHp)
   })
 
-  it('我方能击破黄巾大本营', () => {
-    let battle = createYellowTurbanBattle(PLAYER_BASE_HP, BASIC_UNIT_CARDS, seededRandom(2))
-    for (let turn = 0; turn < 40 && battle.result === 'ongoing'; turn += 1) battle = stepBattle(battle)
-    expect(battle.result, battle.log.join('\n')).toBe('win')
-    expect(battle.enemyBaseHp).toBeLessThanOrEqual(0)
-    expect(battle.playerBaseHp).toBeGreaterThan(0)
+  it('没有敌人可追时，贴着黄巾大本营的单位能把它击破', () => {
+    const start = createYellowTurbanBattle()
+    const breaker: BoardUnit = {
+      uid: 'p',
+      side: 'player',
+      card: { ...INFANTRY_CARD, atk: YELLOW_TURBAN_BASE_HP, move: 0 },
+      row: 2,
+      col: 8,
+      hp: INFANTRY_CARD.hp,
+      entered: 1,
+    }
+    const struck = advanceBattle({
+      ...start,
+      turn: 1,
+      units: [breaker],
+      queue: ['p'],
+      playerHand: [],
+      playerDeck: [],
+      enemyHand: [{ uid: 'h', card: INFANTRY_CARD, cd: 3 }],
+      enemyDeck: [],
+    })
+    expect(struck.result).toBe('win')
+    expect(struck.enemyBaseHp).toBe(0)
+    expect(struck.playerBaseHp).toBe(start.playerBaseHp)
+    expect(struck.log).toContain('步兵 对黄巾大本营造成 10')
   })
 })

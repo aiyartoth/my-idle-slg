@@ -134,8 +134,9 @@ export function openAround(from: Coord, tiles: readonly (readonly TileKind[])[],
  * @param move 移动力
  * @param tiles 棋盘
  * @param blocked 其他兵占住的坐标键
- * @param goals 要靠近的格子，一般是敌方大本营
+ * @param goals 要靠近的格子，一般是敌人或敌方大本营
  * @param flying 为 true 时可以经过河流和石头，仍然不能进大本营
+ * @param retreatBases 不能后退时传入敌方大本营。比起点离这些格子更远的格子不走
  * @returns 从起点到落点的格子，相邻两格只差一步
  */
 export function chooseRoute(
@@ -145,7 +146,9 @@ export function chooseRoute(
   blocked: ReadonlySet<string>,
   goals: readonly Coord[],
   flying = false,
+  retreatBases?: readonly Coord[],
 ): Coord[] {
+  const retreatLimit = retreatBases === undefined ? null : distanceTo(from, retreatBases)
   const parent = new Map<string, Coord | null>()
   parent.set(keyOf(from), null)
   let best = { ...from, steps: 0, score: distanceTo(from, goals) }
@@ -162,6 +165,7 @@ export function chooseRoute(
     for (const next of orthogonal(current)) {
       const key = keyOf(next)
       if (seen.has(key) || blocked.has(key) || !canEnter(tiles[next.row][next.col], flying)) continue
+      if (retreatLimit !== null && retreatBases && distanceTo(next, retreatBases) > retreatLimit) continue
       seen.add(key)
       parent.set(key, { row: current.row, col: current.col })
       queue.push({ ...next, steps: current.steps + 1 })

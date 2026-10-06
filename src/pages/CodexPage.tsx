@@ -1,10 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { ALL_CARDS } from '../data/cardCatalog'
-import { DEFAULT_SORT_DIR, sortDeckEntries, type DeckSortDir, type DeckSortKey } from '../data/deckSort'
+import { DEFAULT_SORT_DIR, filterByRaceGroup, groupByRace, raceGroupsIn, sortDeckEntries, type DeckSortDir, type DeckSortKey } from '../data/deckSort'
 import { getPlayerSnapshot, subscribePlayer } from '../data/player'
 import type { UnitCardData } from '../data/cards'
 import { readCardListBrief, writeCardListBrief } from '../ui/cardListBrief'
-import { CardSortBar } from '../ui/CardSortBar'
+import { CardSortBar, RaceGroupHeading } from '../ui/CardSortBar'
 import { UnitCard } from '../ui/UnitCard'
 
 /**
@@ -12,6 +12,7 @@ import { UnitCard } from '../ui/UnitCard'
  * 顶部分类排序和卡组管理是同一条，箭头右侧的详略也一样。简略时一行两张，只留名字、类型和冷却。
  * 简略时点一张牌弹出详情浮层，关掉后回到列表。
  * 进来时稀有度升序已经生效。详略会记住，离开再回来仍是上次的样子。
+ * 选定某一个种族时，箭头改成按稀有度升降。
  *
  * @returns 图鉴页
  */
@@ -19,11 +20,17 @@ export default function CodexPage() {
   const player = useSyncExternalStore(subscribePlayer, getPlayerSnapshot)
   const [key, setKey] = useState<DeckSortKey>('rarity')
   const [dir, setDir] = useState<DeckSortDir>(DEFAULT_SORT_DIR)
+  const [raceGroup, setRaceGroup] = useState<string | null>(null)
   const [brief, setBrief] = useState(() => readCardListBrief('codex'))
   const [openId, setOpenId] = useState<string | null>(null)
   const owned = ownedCardIds(player.deck, player.bag)
-  const cards = sortDeckEntries(ALL_CARDS.map((card) => ({ card })), key, dir).map((entry) => entry.card)
-  const openCard = cards.find((card) => card.id === openId)
+  const raceGroups = raceGroupsIn(ALL_CARDS)
+  const activeRace = key === 'race' && raceGroup && raceGroups.includes(raceGroup) ? raceGroup : null
+  const listed = ALL_CARDS.map((card) => ({ card }))
+  const sorted = sortDeckEntries(activeRace ? filterByRaceGroup(listed, activeRace) : listed, activeRace ? 'rarity' : key, dir)
+  const cards = sorted.map((entry) => entry.card)
+  const raceSections = key === 'race' && activeRace === null ? groupByRace(sorted) : null
+  const openCard = cards.find((card) => card.id === openId) ?? ALL_CARDS.find((card) => card.id === openId)
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <div className="shrink-0 px-4 pt-4">
@@ -34,8 +41,11 @@ export default function CodexPage() {
             dir={dir}
             brief={brief}
             ariaLabel="图鉴排序"
+            raceGroups={raceGroups}
+            raceGroup={activeRace}
             onChangeKey={setKey}
             onChangeDir={setDir}
+            onChangeRaceGroup={setRaceGroup}
             onToggleBrief={() => {
               setBrief((value) => {
                 const next = !value
@@ -49,21 +59,29 @@ export default function CodexPage() {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-3">
         <ul className={brief ? 'grid grid-cols-2 gap-2' : 'flex flex-col gap-3'}>
-          {cards.map((card) => {
-            const obtained = owned.has(card.id)
-            return (
-              <li key={card.id} className="relative">
-                {brief ? (
-                  <button type="button" className="block w-full text-left" onClick={() => setOpenId(card.id)}>
-                    <UnitCard card={card} brief />
-                  </button>
-                ) : (
-                  <UnitCard card={card} />
-                )}
-                {obtained ? null : <div className="pointer-events-none absolute inset-0 rounded-xl bg-[#7a756c]/55" aria-hidden="true" />}
-                {obtained ? null : <span className="sr-only">未获得</span>}
+          {(raceSections ?? [{ group: '', entries: cards.map((card) => ({ card })) }]).flatMap((section) => {
+            const heading = raceSections ? (
+              <li key={`race-${section.group}`} className="col-span-2">
+                <RaceGroupHeading name={section.group} />
               </li>
-            )
+            ) : null
+            const items = section.entries.map(({ card }) => {
+              const obtained = owned.has(card.id)
+              return (
+                <li key={card.id} className="relative">
+                  {brief ? (
+                    <button type="button" className="block w-full text-left" onClick={() => setOpenId(card.id)}>
+                      <UnitCard card={card} brief />
+                    </button>
+                  ) : (
+                    <UnitCard card={card} />
+                  )}
+                  {obtained ? null : <div className="pointer-events-none absolute inset-0 rounded-xl bg-[#7a756c]/55" aria-hidden="true" />}
+                  {obtained ? null : <span className="sr-only">未获得</span>}
+                </li>
+              )
+            })
+            return heading ? [heading, ...items] : items
           })}
         </ul>
       </div>

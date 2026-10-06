@@ -1,11 +1,12 @@
+import { isLegendCard } from './cardType'
 import type { UnitCardData } from './cards'
 import { YELLOW_TURBAN_ENEMY_DECK, YELLOW_TURBAN_LOOT_EXP, YELLOW_TURBAN_LOOT_GOLD } from '../realm/yellowTurban'
 
 /** 每只实际上场的敌方单位，掉一张同名卡的概率 */
 const UNIT_DROP_CHANCE = 0.5
 
-/** 天公将军张角的掉卡概率。橙色，比普通单位的五成更低 */
-const ZHANG_JIAO_DROP_CHANCE = 0.1
+/** 传奇生物的掉卡概率。比普通单位的五成更低 */
+export const LEGEND_DROP_CHANCE = 0.02
 
 /** 一种合成材料。合成还没做，先按概率掉进背包 */
 export interface MaterialDrop {
@@ -33,7 +34,6 @@ export const YELLOW_TURBAN_DROPS: RealmDropTable = {
   gold: YELLOW_TURBAN_LOOT_GOLD,
   exp: YELLOW_TURBAN_LOOT_EXP,
   unitChance: UNIT_DROP_CHANCE,
-  unitChances: { 'zhang-jiao': ZHANG_JIAO_DROP_CHANCE },
   materials: [
     { id: 'wood', name: '木材', chance: 0.7, count: 1 },
     { id: 'stone', name: '石头', chance: 0.5, count: 1 },
@@ -80,7 +80,7 @@ export function rollClearLoot(realmId: string, appearedEnemies: readonly UnitCar
   if (!table) return { gold: 0, exp: 0, cards: [], materials: [] }
   const cards: LootCard[] = []
   appearedEnemies.forEach((card) => {
-    if (random() >= (table.unitChances?.[card.id] ?? table.unitChance)) return
+    if (random() >= (isLegendCard(card) ? LEGEND_DROP_CHANCE : (table.unitChances?.[card.id] ?? table.unitChance))) return
     const found = cards.find((drop) => drop.card.id === card.id)
     if (found) found.count += 1
     else cards.push({ name: card.name, card, count: 1 })

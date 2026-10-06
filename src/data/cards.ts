@@ -94,6 +94,36 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   druid: 'purple',
   /** 死亡骑士 */
   'death-knight': 'orange',
+  /** 魔兽传奇生物。召唤物是白 */
+  thrall: 'orange',
+  mograine: 'orange',
+  arthas: 'orange',
+  illidan: 'orange',
+  jaina: 'orange',
+  sylvanas: 'orange',
+  tyrande: 'orange',
+  guldan: 'orange',
+  kaelthas: 'orange',
+  rexxar: 'orange',
+  'ghost-wolf': 'white',
+  ghoul: 'white',
+  banshee: 'white',
+  infernal: 'purple',
+  phoenix: 'purple',
+  'phoenix-egg': 'white',
+  misha: 'blue',
+  /** 魔兽争霸 3 战役兵。骷髅是亡灵巫师召出来的 */
+  grunt: 'green',
+  raider: 'green',
+  'witch-doctor': 'green',
+  huntress: 'green',
+  tauren: 'blue',
+  kodo: 'blue',
+  abomination: 'blue',
+  necromancer: 'blue',
+  'frost-wyrm': 'purple',
+  'mountain-giant': 'purple',
+  skeleton: 'white',
 }
 
 /**
@@ -118,8 +148,8 @@ function isCardRarity(value: unknown): value is CardRarity {
   return value === 'white' || value === 'green' || value === 'blue' || value === 'purple' || value === 'orange' || value === 'red'
 }
 
-/** 卡牌种族。人类阵营里再分人类、矮人、侏儒和高等精灵 */
-export type CardRace = 'human' | 'dwarf' | 'gnome' | 'highElf'
+/** 卡牌种族。人类阵营里再分人类、矮人、侏儒和高等精灵，传奇生物再用兽人、亡灵、暗夜、血精灵、野兽和恶魔 */
+export type CardRace = 'human' | 'dwarf' | 'gnome' | 'highElf' | 'orc' | 'undead' | 'nightElf' | 'bloodElf' | 'beast' | 'demon'
 
 /** 种族写在卡面类型行上的名字 */
 export const RACE_LABEL: Record<CardRace, string> = {
@@ -131,6 +161,18 @@ export const RACE_LABEL: Record<CardRace, string> = {
   gnome: '侏儒',
   /** 高等精灵 */
   highElf: '高等精灵',
+  /** 兽人 */
+  orc: '兽人',
+  /** 亡灵 */
+  undead: '亡灵',
+  /** 暗夜精灵 */
+  nightElf: '暗夜精灵',
+  /** 血精灵 */
+  bloodElf: '血精灵',
+  /** 野兽。幽灵狼和米莎用 */
+  beast: '野兽',
+  /** 恶魔。地狱火用 */
+  demon: '恶魔',
 }
 
 /** 伤害种类。物理伤害吃重甲，法术伤害吃魔甲 */
@@ -146,6 +188,8 @@ export interface CardSkill {
   kind?: SkillKind
   /** 和种类一起用的点数。雷电这里是法术伤害的基础值 */
   value?: number
+  /** 击杀后跳到下一目标的伤害。炎爆术用来跟第一下的点数区分 */
+  follow?: number
   /** 撒豆成兵可以召出来的单位。每次召唤从里面随机取一张 */
   summons?: readonly UnitCardData[]
   /** 战斗还没结算这条技能。卡面上写在名字前面 */
@@ -202,6 +246,8 @@ export type ArmorSkillKind = 'pierce' | 'spellPierce' | 'plate' | 'ward'
  * 战斗里按种类识别的技能。
  * 护甲四种、法术免疫和反馈会改伤害。
  * 斩杀按目标当前生命加到这一击上。吸血在命中后回复自己。
+ * 战鼓给范围内友方的普攻加上攻击，自己也算。
+ * 吞噬和斩杀一样按目标当前生命追加伤害，但飞行、传奇、抗性皮肤和法术免疫吃不到吞噬。
  * 其余种类各自有行动、走位或选目标结算，不写进普攻公式。
  */
 export type SkillKind =
@@ -227,6 +273,24 @@ export type SkillKind =
   | 'execute'
   | 'leech'
   | 'taunt'
+  | 'pack'
+  | 'chain'
+  | 'aegis'
+  | 'raise'
+  | 'rebirth'
+  | 'massHeal'
+  | 'shatter'
+  | 'tap'
+  | 'command'
+  | 'whirl'
+  | 'hunt'
+  | 'pyro'
+  | 'drums'
+  | 'immolate'
+  | 'maul'
+  | 'devour'
+  | 'resist'
+  | 'hatch'
 
 /** 破甲、法术穿透、重甲、魔甲的展示名和效果句 */
 const ARMOR_SKILL_TEXT: Record<ArmorSkillKind, { name: string; effect: (value: number) => string }> = {

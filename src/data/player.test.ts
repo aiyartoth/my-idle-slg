@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { YELLOW_ARCHER_CARD, YELLOW_INFANTRY_CARD } from '../realm/yellowTurban'
+import { YELLOW_ARCHER_CARD, YELLOW_INFANTRY_CARD, ZHANG_JIAO_CARD } from '../realm/yellowTurban'
 import { ensureCardRarity, INFANTRY_CARD } from './cards'
 import { playerSaveFrom } from './playerDb'
 import { IDLE_CAP_MS } from './idle'
 import { FURNACE_REFRESH_CRYSTAL } from './furnace'
-import { ACTIVITY_LOG_LIMIT, addCardToBag, addExp, addMaterialToBag, baseHpFrom, craftFurnaceRecipe, decomposeBagCard, ensureFurnaceOffers, expToNextLevel, formatActivityLine, getPlayerSnapshot, HP_PER_LEVEL, isIdling, noteBattleResult, notePresence, recordRealmClear, refreshFurnaceOffers, restorePlayer, settleOfflineReturn, shouldOfferIdle, startClearedIdle, toggleRealmIdle, unequipDeckCard, useBagCard } from './player'
+import { ACTIVITY_LOG_LIMIT, addCardToBag, addExp, addMaterialToBag, baseHpFrom, craftFurnaceRecipe, decomposeBagCard, ensureFurnaceOffers, expToNextLevel, formatActivityLine, getPlayerSnapshot, HP_PER_LEVEL, isIdling, noteBattleResult, notePresence, recordRealmClear, refreshFurnaceOffers, releaseExtraLegends, restorePlayer, settleOfflineReturn, shouldOfferIdle, startClearedIdle, toggleRealmIdle, unequipDeckCard, useBagCard } from './player'
 
 describe('冒险者', () => {
   it('大本营生命按等级加点，科技和神器以后再加', () => {
@@ -17,7 +17,7 @@ describe('冒险者', () => {
     const before = getPlayerSnapshot()
     const item = addCardToBag(YELLOW_ARCHER_CARD)
     expect(getPlayerSnapshot().bag.map((entry) => entry.id)).toContain(item.id)
-    expect(useBagCard(item.id)).toBe(true)
+    expect(useBagCard(item.id)).toBe('added')
     const after = getPlayerSnapshot()
     expect(after.bag.some((entry) => entry.id === item.id)).toBe(false)
     expect(after.deck).toHaveLength(before.deck.length + 1)
@@ -42,7 +42,7 @@ describe('冒险者', () => {
     const second = addCardToBag(YELLOW_ARCHER_CARD)
     expect(second.id).toBe(first.id)
     expect(getPlayerSnapshot().bag.find((item) => item.id === first.id)?.count).toBe(2)
-    expect(useBagCard(first.id)).toBe(true)
+    expect(useBagCard(first.id)).toBe('added')
     expect(getPlayerSnapshot().bag.find((item) => item.id === first.id)?.count).toBe(1)
     const equipped = getPlayerSnapshot().deck.at(-1)
     if (!equipped) throw new Error('缺卡')
@@ -205,5 +205,37 @@ describe('冒险者', () => {
     expect(getPlayerSnapshot().crystal).toBe(paid - FURNACE_REFRESH_CRYSTAL)
     expect([...getPlayerSnapshot().furnaceOffers].sort().join('|')).not.toBe([...offers].sort().join('|'))
     expect(refreshFurnaceOffers(() => 0.5)).toBe(false)
+  })
+
+  it('同名传奇只能放一张，多出来的下阵回背包', () => {
+    const beforeBag = getPlayerSnapshot().bag.find((entry) => entry.kind === 'card' && entry.card.id === 'zhang-jiao')
+    const beforeCount = beforeBag?.kind === 'card' ? beforeBag.count : 0
+    const item = addCardToBag(ZHANG_JIAO_CARD, 2)
+    expect(useBagCard(item.id)).toBe('added')
+    expect(useBagCard(item.id)).toBe('legend')
+    const afterAdd = getPlayerSnapshot()
+    expect(afterAdd.deck.filter((entry) => entry.card.id === 'zhang-jiao')).toHaveLength(1)
+    expect(afterAdd.bag.find((entry) => entry.id === item.id)?.count).toBe(beforeCount + 1)
+    const kept = afterAdd.deck.find((entry) => entry.card.id === 'zhang-jiao')
+    restorePlayer({
+      gold: afterAdd.gold,
+      level: afterAdd.level,
+      exp: afterAdd.exp,
+      deckSeq: 40,
+      bagSeq: 40,
+      deck: [...afterAdd.deck, { uid: 'd-extra-legend', card: ZHANG_JIAO_CARD }],
+      bag: [...afterAdd.bag],
+      crystal: afterAdd.crystal,
+      furnaceOffers: [...afterAdd.furnaceOffers],
+      realms: afterAdd.realms,
+      activityLog: [...afterAdd.activityLog],
+    })
+    expect(releaseExtraLegends()).toBe(1)
+    const pruned = getPlayerSnapshot()
+    expect(pruned.deck.filter((entry) => entry.card.id === 'zhang-jiao')).toHaveLength(1)
+    expect(pruned.deck.find((entry) => entry.card.id === 'zhang-jiao')?.uid).toBe(kept?.uid)
+    const stack = pruned.bag.find((entry) => entry.kind === 'card' && entry.card.id === 'zhang-jiao')
+    expect(stack?.kind === 'card' ? stack.count : 0).toBe(beforeCount + 2)
+    expect(releaseExtraLegends()).toBe(0)
   })
 })

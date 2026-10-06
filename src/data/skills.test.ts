@@ -24,6 +24,24 @@ const SETTLED_SKILL_KINDS = new Set<CardSkill['kind']>([
   'execute',
   'leech',
   'taunt',
+  'pack',
+  'chain',
+  'aegis',
+  'raise',
+  'rebirth',
+  'massHeal',
+  'shatter',
+  'tap',
+  'command',
+  'whirl',
+  'hunt',
+  'pyro',
+  'drums',
+  'immolate',
+  'maul',
+  'devour',
+  'resist',
+  'hatch',
 ])
 
 describe('技能是否进了战斗', () => {
@@ -66,6 +84,29 @@ describe('技能是否进了战斗', () => {
     expect(ALL_CARDS.find((card) => card.id === 'warlock')?.skills.map((skill) => skill.kind)).toEqual(['lightning', 'slow'])
     expect(ALL_CARDS.find((card) => card.id === 'druid')?.skills.map((skill) => skill.kind)).toEqual(['heal', 'innerFire', 'slow'])
     expect(ALL_CARDS.find((card) => card.id === 'death-knight')?.skills.map((skill) => skill.kind)).toEqual(['taunt', 'leech', 'slow'])
+    expect(ALL_CARDS.find((card) => card.id === 'thrall')?.skills.map((skill) => skill.kind)).toEqual(['pack', 'chain'])
+    expect(ALL_CARDS.find((card) => card.id === 'mograine')?.skills.map((skill) => skill.kind)).toEqual(['splash', 'aegis'])
+    expect(ALL_CARDS.find((card) => card.id === 'arthas')?.skills.map((skill) => skill.kind)).toEqual(['slow', 'raise'])
+    expect(ALL_CARDS.find((card) => card.id === 'illidan')?.skills.map((skill) => skill.kind)).toEqual(['whirl', 'hunt'])
+    expect(ALL_CARDS.find((card) => card.id === 'jaina')?.skills.map((skill) => skill.kind)).toEqual(['thunderClap', 'shatter'])
+    expect(ALL_CARDS.find((card) => card.id === 'sylvanas')?.skills.map((skill) => skill.kind)).toEqual(['bash', 'raise'])
+    expect(ALL_CARDS.find((card) => card.id === 'tyrande')?.skills.map((skill) => skill.kind)).toEqual(['massHeal', 'blizzard'])
+    expect(ALL_CARDS.find((card) => card.id === 'guldan')?.skills.map((skill) => skill.kind)).toEqual(['pack', 'tap'])
+    expect(ALL_CARDS.find((card) => card.id === 'kaelthas')?.skills.map((skill) => skill.kind)).toEqual(['pyro', 'rebirth'])
+    expect(ALL_CARDS.find((card) => card.id === 'rexxar')?.skills.map((skill) => skill.kind)).toEqual(['pack', 'command'])
+    expect(ALL_CARDS.find((card) => card.id === 'grunt')?.skills.map((skill) => skill.kind)).toEqual(['plate'])
+    expect(ALL_CARDS.find((card) => card.id === 'raider')?.skills.map((skill) => skill.kind)).toEqual(['slow'])
+    expect(ALL_CARDS.find((card) => card.id === 'witch-doctor')?.skills.map((skill) => skill.kind)).toEqual(['massHeal'])
+    expect(ALL_CARDS.find((card) => card.id === 'huntress')?.skills.map((skill) => skill.kind)).toEqual(['splash'])
+    expect(ALL_CARDS.find((card) => card.id === 'tauren')?.skills.map((skill) => skill.kind)).toEqual(['thunderClap', 'plate'])
+    expect(ALL_CARDS.find((card) => card.id === 'kodo')?.skills.map((skill) => skill.kind)).toEqual(['drums', 'devour'])
+    expect(ALL_CARDS.find((card) => card.id === 'infernal')?.skills.map((skill) => skill.kind)).toEqual(['taunt', 'immolate'])
+    expect(ALL_CARDS.find((card) => card.id === 'phoenix')?.skills.map((skill) => skill.kind)).toEqual(['fly', 'rebirth'])
+    expect(ALL_CARDS.find((card) => card.id === 'misha')?.skills.map((skill) => skill.kind)).toEqual(['taunt', 'maul', 'resist'])
+    expect(ALL_CARDS.find((card) => card.id === 'abomination')?.skills.map((skill) => skill.kind)).toEqual(['taunt', 'leech'])
+    expect(ALL_CARDS.find((card) => card.id === 'necromancer')?.skills.map((skill) => skill.kind)).toEqual(['slow', 'raise'])
+    expect(ALL_CARDS.find((card) => card.id === 'frost-wyrm')?.skills.map((skill) => skill.kind)).toEqual(['fly', 'slow', 'siege'])
+    expect(ALL_CARDS.find((card) => card.id === 'mountain-giant')?.skills.map((skill) => skill.kind)).toEqual(['taunt', 'plate'])
   })
 })
 

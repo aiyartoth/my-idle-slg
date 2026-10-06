@@ -70,6 +70,7 @@ function YellowTurbanBattle() {
     <div className="relative flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-3 px-3 pt-3">
         <h1 className="text-lg font-semibold">黄巾之乱</h1>
+        <p className="text-sm font-semibold tabular-nums">回合 {Math.max(battle.turn, 1)}</p>
         <div className="flex shrink-0 items-center gap-3 text-sm">
           <button type="button" aria-expanded={logOpen} onClick={() => setLogOpen(true)} className="text-[#f4efe6]">
             日志

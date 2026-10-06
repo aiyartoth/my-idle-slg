@@ -117,7 +117,7 @@ export const SORCERESS_CARD: UnitCardData = {
     },
     {
       name: '变形术 3',
-      effect: '行动开始前，将范围内生命不超过 3、且没有法术免疫的一名敌方变为绵羊，持续到本回合结束',
+      effect: '行动开始前，将范围内生命不超过 3、且没有法术免疫或抗性皮肤的一名敌方变为绵羊，持续到本回合结束',
       kind: 'polymorph',
       value: 3,
     },
