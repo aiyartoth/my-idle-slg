@@ -1,10 +1,12 @@
-import { useSyncExternalStore } from 'react'
+import { useRef, useState, useSyncExternalStore } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { RARITY_TEXT_CLASS, type UnitCardData } from '../data/cards'
 import { getPlayerSnapshot, subscribePlayer, unequipDeckCard, useBagCard } from '../data/player'
 import { UnitCard } from '../ui/UnitCard'
 
 /**
  * 卡牌详情页。背包里可以上阵，卡组里可以下阵。升级之类的功能以后加在这一页。
+ * 背包里用掉一张后留在本页，还有同名牌就继续显示使用。
  *
  * @returns 卡牌详情
  */
@@ -12,12 +14,24 @@ export default function CardDetailPage() {
   const { place, cardId } = useParams()
   const navigate = useNavigate()
   const player = useSyncExternalStore(subscribePlayer, getPlayerSnapshot)
+  const [joined, setJoined] = useState<UnitCardData | null>(null)
+  const [joinedFor, setJoinedFor] = useState('')
+  const seenRef = useRef<{ id: string; card: UnitCardData } | null>(null)
   const fromDeck = place === 'deck'
   const bagItem = fromDeck ? undefined : player.bag.find((item) => item.id === cardId && item.kind === 'card')
   const card = fromDeck ? player.deck.find((entry) => entry.uid === cardId)?.card : bagItem?.kind === 'card' ? bagItem.card : undefined
+  const routeId = `${place ?? ''}:${cardId ?? ''}`
+  if (joinedFor !== routeId) {
+    setJoinedFor(routeId)
+    setJoined(null)
+  }
+  if (card && seenRef.current?.id !== routeId) seenRef.current = { id: routeId, card }
+  if (!card && seenRef.current && seenRef.current.id !== routeId) seenRef.current = null
+  const shown = card ?? (seenRef.current?.id === routeId ? seenRef.current.card : undefined)
+  const canUse = !fromDeck && !!bagItem && bagItem.count > 0
   const backTo = fromDeck ? '/deck' : '/bag'
   const backLabel = fromDeck ? '返回卡组' : '返回背包'
-  if (!card || (place !== 'deck' && place !== 'bag')) {
+  if (!shown || (place !== 'deck' && place !== 'bag')) {
     return (
       <div className="px-4 py-4">
         <p>这张牌已经不在了。</p>
@@ -34,9 +48,10 @@ export default function CardDetailPage() {
       </Link>
       <h1 className="mt-3 text-lg font-semibold">卡牌详情</h1>
       <div className="mt-3">
-        <UnitCard card={card} />
+        <UnitCard card={shown} />
       </div>
       {bagItem && bagItem.count > 1 ? <p className="mt-3 text-sm text-[#c8b49a]">数量 {bagItem.count}</p> : null}
+      {joined ? <JoinedNotice card={joined} /> : null}
       <div className="mt-4">
         {fromDeck ? (
           <button
@@ -49,19 +64,33 @@ export default function CardDetailPage() {
           >
             下阵
           </button>
-        ) : (
+        ) : canUse ? (
           <button
             type="button"
             className="rounded-lg bg-[#f4efe6] px-3 py-2 text-sm font-semibold text-[#241f1a]"
             onClick={() => {
-              if (!cardId || !useBagCard(cardId)) return
-              navigate('/deck')
+              if (!cardId || !shown || !useBagCard(cardId)) return
+              setJoined(shown)
             }}
           >
             使用
           </button>
-        )}
+        ) : null}
       </div>
     </div>
+  )
+}
+
+/**
+ * 上阵成功的提示。名字按稀有度上色，括号留着深色。
+ *
+ * @param props.card 刚放进卡组的那张牌
+ * @returns 提示
+ */
+function JoinedNotice({ card }: { card: UnitCardData }) {
+  return (
+    <p className="mt-3 rounded-lg bg-[#f4efe6] px-3 py-2 text-sm font-semibold text-[#241f1a]" role="status">
+      卡组中加入 [<span className={RARITY_TEXT_CLASS[card.rarity]}>{card.name}</span>]
+    </p>
   )
 }

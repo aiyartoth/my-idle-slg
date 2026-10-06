@@ -3,7 +3,7 @@ import { YELLOW_ARCHER_CARD } from '../realm/yellowTurban'
 import { ensureCardRarity, INFANTRY_CARD } from './cards'
 import { playerSaveFrom } from './playerDb'
 import { IDLE_CAP_MS } from './idle'
-import { ACTIVITY_LOG_LIMIT, addCardToBag, addExp, baseHpFrom, expToNextLevel, formatActivityLine, getPlayerSnapshot, HP_PER_LEVEL, isIdling, noteBattleResult, notePresence, recordRealmClear, restorePlayer, settleOfflineReturn, toggleRealmIdle, unequipDeckCard, useBagCard } from './player'
+import { ACTIVITY_LOG_LIMIT, addCardToBag, addExp, baseHpFrom, expToNextLevel, formatActivityLine, getPlayerSnapshot, HP_PER_LEVEL, isIdling, noteBattleResult, notePresence, recordRealmClear, restorePlayer, settleOfflineReturn, shouldOfferIdle, startClearedIdle, toggleRealmIdle, unequipDeckCard, useBagCard } from './player'
 
 describe('冒险者', () => {
   it('大本营生命按等级加点，科技和神器以后再加', () => {
@@ -83,6 +83,15 @@ describe('冒险者', () => {
     expect(capped?.settledMs).toBe(IDLE_CAP_MS)
     expect(isIdling()).toBe(true)
     toggleRealmIdle('yellow-turban', idleFrom + IDLE_CAP_MS + 2 * 60 * 60 * 1000)
+    expect(isIdling()).toBe(false)
+    expect(shouldOfferIdle({})).toBe(false)
+    expect(shouldOfferIdle({ 'yellow-turban': { bestClearMs: 60_000, idling: false, idleFrom: 0 } })).toBe(true)
+    expect(shouldOfferIdle({ 'yellow-turban': { bestClearMs: 60_000, idling: true, idleFrom: 1 } })).toBe(false)
+    expect(shouldOfferIdle(getPlayerSnapshot().realms)).toBe(true)
+    startClearedIdle(idleFrom)
+    expect(isIdling()).toBe(true)
+    expect(shouldOfferIdle(getPlayerSnapshot().realms)).toBe(false)
+    toggleRealmIdle('yellow-turban', idleFrom)
     expect(isIdling()).toBe(false)
   })
 

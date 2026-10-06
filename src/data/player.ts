@@ -302,6 +302,30 @@ export function isIdling(): boolean {
 }
 
 /**
+ * 退出前要不要问挂机。有秘境已经通关，并且当前一个都没在挂，才问。
+ *
+ * @param rows 各秘境进度
+ * @returns 需要提示挂机时为 true
+ */
+export function shouldOfferIdle(rows: Readonly<Record<string, RealmProgress>>): boolean {
+  const list = Object.values(rows)
+  return list.some((row) => row.bestClearMs > 0) && list.every((row) => !row.idling)
+}
+
+/**
+ * 把已经通关、还没挂上的秘境开始挂机。正在挂的秘境不动。
+ *
+ * @param now 开始时刻，测试里传入固定时间
+ */
+export function startClearedIdle(now = Date.now()): void {
+  for (const realmId of Object.keys(realms)) {
+    const row = realms[realmId]
+    if (!row || row.bestClearMs <= 0 || row.idling) continue
+    toggleRealmIdle(realmId, now)
+  }
+}
+
+/**
  * 开始或停止这个秘境的挂机。没通关过不能挂。停止时把已经攒下的通关结算掉。
  *
  * @param realmId 秘境 id

@@ -1,8 +1,9 @@
-import { useEffect, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { getGold, isIdling, notePresence, settleOfflineReturn, subscribeGold } from '../data/player'
 import { APP_VERSION } from 'virtual:app-version'
 import { OfflineSettlement } from './OfflineSettlement'
+import { PhoneBack } from './PhoneBack'
 
 /** 前台时刷新在线时间的间隔。用来区分真的离线 */
 const PRESENCE_MS = 30_000
@@ -16,6 +17,7 @@ const LEAVE_WITHOUT_IDLE = '当前没有挂机，离开后无法获得离线收�
  * @returns 套了资源栏的页面
  */
 export function AppShell() {
+  const shellRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const onHide = () => notePresence()
     const onShow = () => {
@@ -41,12 +43,13 @@ export function AppShell() {
     }
   }, [])
   return (
-    <div className="relative mx-auto flex h-dvh w-full max-w-md flex-col overflow-hidden bg-[#1a1613] text-[#f4efe6]">
+    <div ref={shellRef} className="relative mx-auto flex h-dvh w-full max-w-md flex-col overflow-hidden bg-[#1a1613] text-[#f4efe6]">
       <ResourceBar />
       <main className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
         <Outlet />
       </main>
       <OfflineSettlement />
+      <PhoneBack shellRef={shellRef} />
     </div>
   )
 }
