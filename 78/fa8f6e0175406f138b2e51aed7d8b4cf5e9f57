@@ -1,0 +1,76 @@
+src/realm/realmMap.ts
+  s_ceca5e604c7df9::t_7dea911c5effe1 1-324
+src/realm/stormwind.ts
+  s_ceca5e604c7df9::t_ba3a3bb9fd4b0f 75
+  s_ceca5e604c7df9::t_c015bcd189c8c9 79,87,92,94
+  s_ceca5e604c7df9::t_e6947bfecc5935 7
+src/realm/chaos.test.ts
+  s_ceca5e604c7df9::t_e6298128b61d4b 1-66
+src/realm/realmMap.test.ts
+  s_ceca5e604c7df9::t_ed28d75af4ca89 1-52
+src/pages/RealmBattlePage.tsx
+  s_ceca5e604c7df9::t_e09af854fd8c0d 118-120,123,132-134,136
+src/realm/battleSession.ts
+  s_ceca5e604c7df9::t_5eed703d7d7c32 5
+  s_ceca5e604c7df9::t_97765297950020 114
+package.json
+  s_ceca5e604c7df9::t_8ad7213e995b96 4
+src/realm/wowBattle.test.ts
+  s_ceca5e604c7df9::t_22595cd38015c4 19
+  s_ceca5e604c7df9::t_ac141f0a582bf9 5
+src/pages/RealmListPage.tsx
+  s_ceca5e604c7df9::t_256ccd9d88b3de 44-48
+  s_ceca5e604c7df9::t_ee31d0a0516f4e 12-13
+src/realm/battle.test.ts
+  s_ceca5e604c7df9::t_48d364758b514b 64,71,83,136,167,173,213,245,263,294,327,377
+  s_ceca5e604c7df9::t_da0ba5b22d9031 14,17
+  s_ceca5e604c7df9::t_926528083ea42a 5
+  s_ceca5e604c7df9::t_d2d6c97d05e25c 18
+  s_ceca5e604c7df9::t_d58a1f43567084 11-13,15-16,19-20
+src/realm/allianceBattle.test.ts
+  s_ceca5e604c7df9::t_eb7222d1e24425 17
+  s_ceca5e604c7df9::t_6ce3cb5af747b4 31
+android/app/build.gradle
+  s_ceca5e604c7df9::t_d8752fa28ad64d 10-11
+src/realm/campaignBattle.test.ts
+  s_ceca5e604c7df9::t_ac60aef873ca02 18
+  s_ceca5e604c7df9::t_a54364c50747ae 32
+src/realm/yellowTurban.ts
+  s_ceca5e604c7df9::t_35d245dc56142b 57-64
+  s_ceca5e604c7df9::t_2395143196bccf 27-28
+  s_ceca5e604c7df9::t_61c9896cb7ca87 3
+  s_ceca5e604c7df9::t_8fe8effba49478 84
+  s_ceca5e604c7df9::t_c416fdcdbf6b9a 88,100
+src/realm/legendBattle.test.ts
+  s_ceca5e604c7df9::t_5647372537edc8 34
+  s_ceca5e604c7df9::t_e3841f2fa2ba2f 20
+  s_ceca5e604c7df9::t_62b149732c6c42 285
+src/ui/OfflineSettlement.tsx
+  s_ceca5e604c7df9::t_9d31b46d81ae38 8-10
+  s_ceca5e604c7df9::t_276cd356f852c6 37-40,43,46,60
+src/realm/chaos.ts
+  s_ceca5e604c7df9::t_b05a46d7a89cea 5
+  s_ceca5e604c7df9::t_0d21ad43a01aac 67
+  s_ceca5e604c7df9::t_fb683001f0b08a 1-4,6-66,68-70,72-78,80-83,85,87-108
+  s_ceca5e604c7df9::t_8e5f2a8b6273d6 71,79,84,86
+src/data/drops.ts
+  s_ceca5e604c7df9::t_c5c3ff128f2e9e 158,161,167
+  s_ceca5e604c7df9::t_925e58993413f3 58-69,73
+  s_ceca5e604c7df9::t_72c22b2aad6e53 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.45-trip",
+  "base_commit_sha": "78fa8f6e0175406f138b2e51aed7d8b4cf5e9f57",
+  "prompts": {},
+  "sessions": {
+    "s_ceca5e604c7df9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "546d3a00-c65e-49d3-b48e-5ab1eb115780",
+        "model": "grok-4.7"
+      },
+      "human_author": "ynanxu <ynanxu@trip.com>"
+    }
+  }
+}
