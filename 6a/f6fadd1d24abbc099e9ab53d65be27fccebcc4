@@ -1,0 +1,50 @@
+src/ui/cardListBrief.ts
+  s_0708c40cf986e9::t_714935e3fd69db 1-60
+src/pages/CodexPage.tsx
+  s_0708c40cf986e9::t_ae8d6c8397336e 1,5
+  s_0708c40cf986e9::t_3ad02019e966aa 23,26,28
+  s_0708c40cf986e9::t_6177924e0d1395 12
+  s_0708c40cf986e9::t_121702fca58473 40-44
+  s_0708c40cf986e9::t_96780685816e38 94-100,102
+  s_0708c40cf986e9::t_f92fd4345e4562 3,6
+  s_0708c40cf986e9::t_f009be016af078 70-93,104
+  s_0708c40cf986e9::t_0cb8796d10492e 13
+  s_0708c40cf986e9::t_2cad06155b3fbc 14,21-22,25
+  s_0708c40cf986e9::t_16bb4e96550af0 39,45-46
+  s_0708c40cf986e9::t_75cc37d0aef07c 32-38,47
+  s_0708c40cf986e9::t_120929e66d6456 51
+  s_0708c40cf986e9::t_520fe0ca1ab1db 56-62
+  s_0708c40cf986e9::t_7f0aff4a6b6d0a 101,103
+src/ui/UnitCard.tsx
+  s_0708c40cf986e9::t_e3ce1b3226a31e 8,12,15,18-31
+src/ui/CardSortBar.tsx
+  s_0708c40cf986e9::t_c5d981d3ef612b 61-66
+  s_0708c40cf986e9::t_43a23c750a83df 95-111
+  s_0708c40cf986e9::t_7916bf04fce752 94
+  s_0708c40cf986e9::t_c73caea9b0dc98 13,17,21,27,31,35,39
+src/pages/DeckPage.tsx
+  s_0708c40cf986e9::t_4d59a0d1f1ba85 3,5,12,19-21
+  s_0708c40cf986e9::t_bd8a1c05ea9513 26-32,40
+  s_0708c40cf986e9::t_90e6c80b8a169d 33-39
+  s_0708c40cf986e9::t_a33f9d1882aeae 44,47-48
+  s_0708c40cf986e9::t_8b94af4feb328c 10
+  s_0708c40cf986e9::t_97fbf74ed851eb 11
+src/data/deckSort.ts
+  s_0708c40cf986e9::t_cd887b81bf7d66 9-11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.45-trip",
+  "base_commit_sha": "6af6fadd1d24abbc099e9ab53d65be27fccebcc4",
+  "prompts": {},
+  "sessions": {
+    "s_0708c40cf986e9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "f9cc5af3-311d-400f-9ece-55febbd4a3ca",
+        "model": "grok-4.7"
+      },
+      "human_author": "ynanxu <ynanxu@trip.com>"
+    }
+  }
+}
