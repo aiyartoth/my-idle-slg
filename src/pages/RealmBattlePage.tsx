@@ -4,8 +4,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { BoardUnit, BattleActor, BattleEvent, BattleStrike, DamageDetail, HandCard, UnitRoute } from '../realm/battle'
 import { BOARD_SIZE, type TileKind } from '../realm/board'
 import { skillLine } from '../data/cards'
-import { formatLoot } from '../data/drops'
-import { battleLeaveDelay, confirmBattle, ensureYellowTurbanBattle, exitBattle, getSession, markBattleSettled, retainBattleView, subscribeSession } from '../realm/battleSession'
+import { formatLoot, type RealmLoot } from '../data/drops'
+import { ensureYellowTurbanBattle, exitBattle, getSession, markBattleSettled, retainBattleView, subscribeSession } from '../realm/battleSession'
 
 /** 沿一格滑动的时间。移动力最多 2，两格走完仍赶在下一名兵行动之前 */
 const MOVE_STEP_MS = 320
@@ -43,21 +43,10 @@ function YellowTurbanBattle() {
   const session = useSyncExternalStore(subscribeSession, getSession)
   const [logOpen, setLogOpen] = useState(false)
   const [settledStamp, setSettledStamp] = useState(-1)
-  const battleOver = session.status === 'unconfirmed'
-  const endedAt = battleOver ? session.endedAt : undefined
   useEffect(() => {
     ensureYellowTurbanBattle()
     return retainBattleView()
   }, [])
-  useEffect(() => {
-    if (!battleOver) return
-    const wait = battleLeaveDelay(endedAt ?? Date.now(), Date.now())
-    const timer = window.setTimeout(() => {
-      confirmBattle()
-      navigate('/')
-    }, wait)
-    return () => window.clearTimeout(timer)
-  }, [battleOver, endedAt, navigate])
   if (session.status === 'idle' || session.realmId !== 'yellow-turban') {
     return <p className="px-4 py-4 text-sm text-[#c8b49a]">正在进入战场。</p>
   }
@@ -67,6 +56,11 @@ function YellowTurbanBattle() {
   const animationDone = settledStamp === stamp
   const loot = session.status === 'unconfirmed' ? session.loot : null
   const lootReady = finished && animationDone && battle.result === 'win' && loot !== null
+  const showExit = finished && (battle.result !== 'win' || lootReady)
+  const leave = () => {
+    exitBattle()
+    navigate('/realm')
+  }
   const onSettled = (nextStamp: number) => {
     setSettledStamp(nextStamp)
     markBattleSettled(nextStamp)
@@ -80,14 +74,7 @@ function YellowTurbanBattle() {
           <button type="button" aria-expanded={logOpen} onClick={() => setLogOpen(true)} className="text-[#f4efe6]">
             日志
           </button>
-          <button
-            type="button"
-            className="text-[#c8b49a]"
-            onClick={() => {
-              exitBattle()
-              navigate('/realm')
-            }}
-          >
+          <button type="button" className="text-[#c8b49a]" onClick={leave}>
             退出秘境
           </button>
         </div>
@@ -109,37 +96,38 @@ function YellowTurbanBattle() {
         />
         <TerrainLegend />
       </div>
-      {lootReady ? (
-        <div className="flex items-center justify-between gap-3 px-3 py-2 text-sm text-[#e6c36a]">
-          <p className="min-w-0 break-words">战利品 {loot ? formatLoot(loot) : ''}</p>
-          <button
-            type="button"
-            className="shrink-0 text-[#f4efe6]"
-            onClick={() => {
-              confirmBattle()
-              navigate('/')
-            }}
-          >
-            确认战果
-          </button>
-        </div>
-      ) : null}
-      {finished && battle.result !== 'win' ? (
-        <div className="px-3 py-2 text-right">
-          <button
-            type="button"
-            className="text-sm text-[#f4efe6]"
-            onClick={() => {
-              confirmBattle()
-              navigate('/')
-            }}
-          >
-            确认战果
-          </button>
-        </div>
-      ) : null}
+      {lootReady && loot ? <VictoryToast loot={loot} /> : null}
       <CooldownQueue cards={battle.playerHand} />
+      {showExit ? (
+        <div className="shrink-0 border-t border-[#3a322b] bg-[#1a1613] px-3 py-3">
+          <button type="button" className="w-full rounded-xl bg-[#f4efe6] py-3 text-sm font-semibold text-[#241f1a]" onClick={leave}>
+            退出
+          </button>
+        </div>
+      ) : null}
       {logOpen ? <BattleLog history={battle.history} onClose={() => setLogOpen(false)} /> : null}
+    </div>
+  )
+}
+
+/**
+ * 胜利后停在战场中间的提示。不自动离开，等玩家点底部的退出。
+ *
+ * @param props.loot 这一场已经入账的战利品
+ * @returns 居中的胜利提示
+ */
+function VictoryToast({ loot }: { loot: RealmLoot }) {
+  const lines = formatLoot(loot).split(' · ')
+  return (
+    <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center px-8">
+      <div className="w-full rounded-2xl bg-[#2a241f] px-4 py-4 text-center ring-1 ring-[#5c4a32]" role="status">
+        <p className="text-lg font-semibold">胜利</p>
+        <ul className="mt-2 space-y-1 text-sm leading-6 text-[#e6c36a]">
+          {lines.map((line, index) => (
+            <li key={`${line}-${index}`}>{line}</li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }
@@ -183,7 +171,7 @@ function CooldownQueue({ cards }: { cards: readonly HandCard[] }) {
 function BattleLog({ history, onClose }: { history: readonly BattleEvent[]; onClose: () => void }) {
   const [picked, setPicked] = useState<{ actor: BattleActor; detail?: DamageDetail } | null>(null)
   return (
-    <div className="fixed inset-0 z-20 bg-black/40">
+    <div className="fixed inset-0 z-50 bg-black/40">
       <div className="relative mx-auto flex h-full w-full max-w-md flex-col bg-[#1a1613] text-[#f4efe6]">
       <div className="flex items-center justify-between border-b border-[#3a322b] px-3 py-3">
         <h2 className="text-base font-semibold">战斗日志</h2>

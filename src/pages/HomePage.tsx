@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import { NAV_ITEMS } from '../data/nav'
 import { formatActivityLine, getPlayerSnapshot, HP_PER_LEVEL, subscribePlayer } from '../data/player'
-import { getSession, subscribeSession } from '../realm/battleSession'
+import { getSession, realmEntryPath, subscribeSession } from '../realm/battleSession'
 
 /**
  * 首页。等级和经验条放在一起，入口排成两列。底部是通关和战斗结果。
@@ -12,7 +12,7 @@ import { getSession, subscribeSession } from '../realm/battleSession'
 export default function HomePage() {
   const player = useSyncExternalStore(subscribePlayer, getPlayerSnapshot)
   const session = useSyncExternalStore(subscribeSession, getSession)
-  const realmTo = session.status === 'running' ? `/realm/${session.realmId}` : '/realm'
+  const realmTo = realmEntryPath(session)
   const fighting = session.status === 'running'
   const idling = Object.values(player.realms).some((realm) => realm.idling)
   const expRatio = Math.min(100, (player.exp / player.expToNext) * 100)

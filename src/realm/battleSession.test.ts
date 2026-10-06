@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import { BATTLE_LEAVE_MS, battleLeaveDelay } from './battleSession'
+import { realmEntryPath, type BattleSession } from './battleSession'
 
-describe('战斗结束离开', () => {
-  it('分出胜负后再停最多 5 秒，超时就马上走', () => {
-    const endedAt = 1_000
-    expect(battleLeaveDelay(endedAt, endedAt)).toBe(BATTLE_LEAVE_MS)
-    expect(battleLeaveDelay(endedAt, endedAt + 2_000)).toBe(3_000)
-    expect(battleLeaveDelay(endedAt, endedAt + BATTLE_LEAVE_MS)).toBe(0)
-    expect(battleLeaveDelay(endedAt, endedAt + 9_000)).toBe(0)
+describe('秘境入口', () => {
+  it('还在打的直接回战场', () => {
+    const session = { status: 'running', realmId: 'yellow-turban', battle: {} } as BattleSession
+    expect(realmEntryPath(session)).toBe('/realm/yellow-turban')
+  })
+
+  it('已经分出胜负的回到列表，不再进入战斗页', () => {
+    const finished = {
+      status: 'unconfirmed',
+      realmId: 'yellow-turban',
+      battle: {},
+      rewarded: true,
+      loot: null,
+    } as BattleSession
+    expect(realmEntryPath(finished)).toBe('/realm')
+    expect(realmEntryPath({ status: 'idle' })).toBe('/realm')
   })
 })

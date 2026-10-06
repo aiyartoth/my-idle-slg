@@ -7,9 +7,6 @@ import { createYellowTurbanBattle, realmName } from './yellowTurban'
 /** 后台推进一拍的间隔。离开战斗页也不会停 */
 const TURN_GAP_MS = 900
 
-/** 胜负分出后，战斗界面最多再停留的时间 */
-export const BATTLE_LEAVE_MS = 5000
-
 /** 没有战斗。上一场战果已经确认，或玩家已经退出秘境 */
 interface IdleSession {
   status: 'idle'
@@ -30,8 +27,6 @@ interface UnconfirmedSession {
   rewarded: boolean
   /** 胜利时掷出的战利品。失败和平局是空的 */
   loot: RealmLoot | null
-  /** 分出胜负的时刻。战斗界面从这时起最多再停 5 秒 */
-  endedAt: number
 }
 
 /** 当前这场秘境战斗。页面卸掉以后还留在这里 */
@@ -62,6 +57,17 @@ export function getSession(): BattleSession {
  */
 export function hasOpenBattle(): boolean {
   return session.status === 'running'
+}
+
+/**
+ * 首页点秘境该去哪。只有还在打才跳过列表；已经分出胜负的回到列表，不再进这场战斗。
+ *
+ * @param current 当前秘境战斗
+ * @returns 列表或这场战斗的路径
+ */
+export function realmEntryPath(current: BattleSession): string {
+  if (current.status !== 'running') return '/realm'
+  return `/realm/${current.realmId}`
 }
 
 /**
@@ -156,19 +162,8 @@ function tick(): void {
   window.clearInterval(timer)
   timer = 0
   settledStamp = -1
-  publish({ status: 'unconfirmed', realmId: session.realmId, battle: next, rewarded: false, loot: null, endedAt: Date.now() })
+  publish({ status: 'unconfirmed', realmId: session.realmId, battle: next, rewarded: false, loot: null })
   grantIfReady()
-}
-
-/**
- * 离自动离开战斗界面还要等多久。已经超过 5 秒就马上走。
- *
- * @param endedAt 分出胜负的时刻
- * @param now 当前时刻
- * @returns 还要等待的毫秒，不会超过 5 秒
- */
-export function battleLeaveDelay(endedAt: number, now: number): number {
-  return Math.max(0, BATTLE_LEAVE_MS - (now - endedAt))
 }
 
 /**
