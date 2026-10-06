@@ -3,8 +3,8 @@ import { isLegendCard } from '../data/cardType'
 import { BASIC_UNIT_CARDS, INFANTRY_CARD, TEMPLE_KNIGHT_CARD, type CardRarity, type UnitCardData } from '../data/cards'
 import { JAINA_CARD, MOGRAINE_CARD } from '../data/legends'
 import { PALADIN_CARD } from '../data/wow'
-import { parseMap } from './board'
 import { createBattle, type BattleState } from './battle'
+import { buildRealmMap } from './realmMap'
 import { PLAYER_BASE_HP } from './yellowTurban'
 
 /** 暴风城敌方大本营生命。兵比黄巾多，营也更厚一些 */
@@ -54,22 +54,6 @@ export const STORMWIND_NORMAL_CARDS: readonly UnitCardData[] = [
 export const STORMWIND_LEGEND_CARDS: readonly UnitCardData[] = [PALADIN_CARD, MOGRAINE_CARD, JAINA_CARD]
 
 /**
- * 暴风城的棋盘。地形和黄巾之乱相同，方便沿用同一套战场。
- */
-const STORMWIND_MAP = [
-  '........EE',
-  '........EE',
-  '..........',
-  '.FF....S..',
-  'RRR....RRR',
-  '..SF..FS..',
-  '.F......S.',
-  '..........',
-  'PP........',
-  'PP........',
-]
-
-/**
  * 组一副暴风城敌方牌库。固定 10 张。
  * 普通单位按稀有度加权，越高越少见。传奇整组权重最低，而且最多进一张。
  *
@@ -88,11 +72,11 @@ export function buildStormwindDeck(random: () => number = Math.random): UnitCard
 }
 
 /**
- * 暴风城的开局。敌方牌库每次开战重新按权重抽取，再和我方一起洗牌。
+ * 暴风城的开局。敌方牌库每次开战重新按权重抽取，再和我方一起洗牌。棋盘每次重新生成，大本营仍在对角。
  *
  * @param playerBaseHp 我方大本营生命。不传时用默认值，正式开战传入等级算出的生命
  * @param playerDeck 我方卡组。不传时用基础兵种
- * @param random 抽牌和洗牌用的随机数，返回 0 到 1
+ * @param random 抽牌、洗牌和随机地形用的随机数，返回 0 到 1
  * @returns 可以一步步推进的战斗
  */
 export function createStormwindBattle(
@@ -100,13 +84,14 @@ export function createStormwindBattle(
   playerDeck: readonly UnitCardData[] = BASIC_UNIT_CARDS,
   random: () => number = Math.random,
 ): BattleState {
+  const enemyDeck = buildStormwindDeck(random)
   return createBattle(
     {
       playerBaseHp,
       enemyBaseHp: STORMWIND_BASE_HP,
-      tiles: parseMap(STORMWIND_MAP),
+      tiles: buildRealmMap(random),
       playerDeck,
-      enemyDeck: buildStormwindDeck(random),
+      enemyDeck,
       enemyLabel: '暴风',
     },
     random,

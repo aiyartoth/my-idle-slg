@@ -1,6 +1,6 @@
 import { BASIC_UNIT_CARDS, INFANTRY_CARD, type UnitCardData } from '../data/cards'
-import { parseMap } from './board'
 import { createBattle, type BattleState } from './battle'
+import { buildRealmMap } from './realmMap'
 
 /** 没传入大本营生命时的默认值。玩家正式开战改用等级计算的生命 */
 export const PLAYER_BASE_HP = 40
@@ -14,23 +14,6 @@ export const YELLOW_TURBAN_LOOT_GOLD = 30
 /** 黄巾之乱胜利后的经验。升级规则以后再单独算 */
 export const YELLOW_TURBAN_LOOT_EXP = 10
 
-/**
- * 黄巾之乱的棋盘。右上角 EE 是敌方 2x2 大本营，左下角 PP 是我方。
- * 中间有森林、河流和石头，中间四列留出通路。
- */
-const YELLOW_TURBAN_MAP = [
-  '........EE',
-  '........EE',
-  '..........',
-  '.FF....S..',
-  'RRR....RRR',
-  '..SF..FS..',
-  '.F......S.',
-  '..........',
-  'PP........',
-  'PP........',
-]
-
 /** 秘境列表上的一条。没开放的不能点进去 */
 export interface RealmInfo {
   id: string
@@ -41,6 +24,8 @@ export interface RealmInfo {
   description: string
   /** 战报和棋盘上对敌方的称呼 */
   enemyLabel: string
+  /** 列表是否显示敌人阵容。不写就显示；混乱时空不展示 */
+  lineup?: boolean
 }
 
 /**
@@ -69,6 +54,14 @@ export const REALMS: readonly RealmInfo[] = [
     description: '战火烧到暴风城下，城门已经落下。城墙上圣光与奥术一起亮起，守军不肯退让半步。',
     enemyLabel: '暴风',
   },
+  {
+    id: 'chaos',
+    name: '混乱时空',
+    open: true,
+    lineup: false,
+    description: '时间在这里碎开了。黄巾的呐喊、暴风城的钟声和燃烧军团的脚步叠在同一片雾里，图鉴中的每一张牌都可能从裂隙里走出来。',
+    enemyLabel: '混乱',
+  },
 ]
 
 /** 黄巾步兵。攻击、血量、冷却、移动、速度和范围与步兵相同 */
@@ -88,11 +81,11 @@ export const YELLOW_ARCHER_CARD: UnitCardData = {
 }
 
 /**
- * 黄巾之乱的开局。开战前双方洗牌，再各摸 3 张。
+ * 黄巾之乱的开局。开战前双方洗牌，再各摸 3 张。棋盘每次重新生成，大本营仍在对角。
  *
  * @param playerBaseHp 我方大本营生命。不传时用默认值，正式开战传入等级算出的生命
  * @param playerDeck 我方卡组。不传时用基础兵种
- * @param random 洗牌用的随机数，返回 0 到 1
+ * @param random 洗牌和随机地形用的随机数，返回 0 到 1
  * @returns 可以一步步推进的战斗
  */
 export function createYellowTurbanBattle(
@@ -104,7 +97,7 @@ export function createYellowTurbanBattle(
     {
       playerBaseHp,
       enemyBaseHp: YELLOW_TURBAN_BASE_HP,
-      tiles: parseMap(YELLOW_TURBAN_MAP),
+      tiles: buildRealmMap(random),
       playerDeck,
       enemyDeck: YELLOW_TURBAN_ENEMY_DECK,
     },

@@ -14,6 +14,7 @@ import {
 } from '../data/alliance'
 import { BASIC_UNIT_CARDS, INFANTRY_CARD } from '../data/cards'
 import { advanceBattle, explainStrike, type BattleState, type BoardUnit } from './battle'
+import { classicRealmTiles } from './realmMap'
 import { createYellowTurbanBattle } from './yellowTurban'
 
 /**
@@ -27,6 +28,7 @@ function act(units: BoardUnit[], queue: string[]): BattleState {
   const start = createYellowTurbanBattle()
   return advanceBattle({
     ...start,
+    tiles: classicRealmTiles(),
     turn: 1,
     units,
     queue,

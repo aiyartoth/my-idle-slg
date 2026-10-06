@@ -2,6 +2,7 @@ import type { UnitCardData } from '../data/cards'
 import { rollClearLoot, type RealmLoot } from '../data/drops'
 import { getBaseHp, getDeckCards, grantBattleLoot, noteBattleResult, recordRealmClear, releaseExtraLegends } from '../data/player'
 import { advanceBattle, type BattleState } from './battle'
+import { createChaosBattle } from './chaos'
 import { createStormwindBattle } from './stormwind'
 import { createYellowTurbanBattle, realmName } from './yellowTurban'
 
@@ -110,6 +111,7 @@ function createRealmBattle(realmId: string): BattleState | null {
   const playerDeck = getDeckCards()
   if (realmId === 'yellow-turban') return createYellowTurbanBattle(playerBaseHp, playerDeck)
   if (realmId === 'stormwind') return createStormwindBattle(playerBaseHp, playerDeck)
+  if (realmId === 'chaos') return createChaosBattle(playerBaseHp, playerDeck)
   return null
 }
 

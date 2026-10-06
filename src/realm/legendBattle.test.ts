@@ -17,6 +17,7 @@ import {
   TYRANDE_CARD,
 } from '../data/legends'
 import { advanceBattle, type BattleState, type BoardUnit } from './battle'
+import { classicRealmTiles } from './realmMap'
 import { createYellowTurbanBattle } from './yellowTurban'
 
 /**
@@ -30,6 +31,7 @@ function act(units: BoardUnit[], queue: string[]): BattleState {
   const start = createYellowTurbanBattle()
   return advanceBattle({
     ...start,
+    tiles: classicRealmTiles(),
     turn: 1,
     units,
     queue,
@@ -280,7 +282,7 @@ describe('传奇生物技能', () => {
   })
 
   it('米莎的猛锤有概率取消目标这一回合，抗性皮肤挡变形', () => {
-    const start = createYellowTurbanBattle()
+    const start = { ...createYellowTurbanBattle(), tiles: classicRealmTiles() }
     const quiet = {
       playerHand: [],
       playerDeck: [{ uid: 'pad-p', card: INFANTRY_CARD, cd: 9 }],

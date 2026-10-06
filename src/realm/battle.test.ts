@@ -2,10 +2,21 @@ import { describe, expect, it } from 'vitest'
 import { BASIC_UNIT_CARDS, INFANTRY_CARD, TEMPLE_KNIGHT_CARD } from '../data/cards'
 import { keyOf, openSummonTiles } from './board'
 import { actingOrder, advanceBattle, explainStrike, stepBattle, strikeDamage, type BoardUnit } from './battle'
+import { classicRealmTiles } from './realmMap'
 import { createYellowTurbanBattle, PLAYER_BASE_HP, YELLOW_ARCHER_CARD, YELLOW_INFANTRY_CARD, YELLOW_TURBAN_BASE_HP, ZHANG_JIAO_CARD } from './yellowTurban'
 
 /** 洗牌时总换到自己，牌序保持原样。用来测固定起手 */
 const keepOrder = () => 1 - Number.EPSILON
+
+/**
+ * 开一局黄巾，地形换成经典棋盘。正式开战的地图是随机的，走位测试仍用固定路口。
+ *
+ * @param args 传给黄巾开局的生命、卡组和随机数
+ * @returns 第 0 回合的局面
+ */
+function yellowTurbanBattle(...args: Parameters<typeof createYellowTurbanBattle>) {
+  return { ...createYellowTurbanBattle(...args), tiles: classicRealmTiles() }
+}
 
 describe('黄巾之乱', () => {
   it('黄巾兵和对应基础兵的战斗属性相同', () => {
@@ -50,14 +61,14 @@ describe('黄巾之乱', () => {
   })
 
   it('开战前洗牌，牌还是原来那一套，顺序会变', () => {
-    const steady = createYellowTurbanBattle(PLAYER_BASE_HP, BASIC_UNIT_CARDS, keepOrder)
+    const steady = yellowTurbanBattle(PLAYER_BASE_HP, BASIC_UNIT_CARDS, keepOrder)
     expect(steady.playerHand.map((card) => card.card.name)).toEqual(['步兵', '重甲步兵', '弓箭手'])
     expect(steady.enemyDeck.map((card) => card.card.name)).toEqual(['天公将军张角'])
     expect(steady.history[0]).toMatchObject({ turn: 0, kind: 'note', text: '开战前，双方洗牌' })
     expect(steady.history[1]).toMatchObject({ turn: 0, kind: 'note', text: '我方起手 步兵、重甲步兵、弓箭手' })
     expect(steady.log).toContain('黄巾起手 黄巾步兵、黄巾步兵、黄巾弓箭手')
 
-    const shuffled = createYellowTurbanBattle(PLAYER_BASE_HP, BASIC_UNIT_CARDS, () => 0)
+    const shuffled = yellowTurbanBattle(PLAYER_BASE_HP, BASIC_UNIT_CARDS, () => 0)
     expect(shuffled.playerHand.map((card) => card.card.name)).toEqual(['重甲步兵', '弓箭手', '火枪手'])
     expect([...shuffled.playerHand, ...shuffled.playerDeck].map((card) => card.card.id).sort()).toEqual(
       BASIC_UNIT_CARDS.map((card) => card.id).sort(),
@@ -69,7 +80,7 @@ describe('黄巾之乱', () => {
   })
 
   it('第一回合召唤冷却为 0 的兵，并朝敌营前进', () => {
-    const battle = stepBattle(createYellowTurbanBattle(PLAYER_BASE_HP, BASIC_UNIT_CARDS, keepOrder))
+    const battle = stepBattle(yellowTurbanBattle(PLAYER_BASE_HP, BASIC_UNIT_CARDS, keepOrder))
     const player = battle.units.filter((unit) => unit.side === 'player')
     const enemy = battle.units.filter((unit) => unit.side === 'enemy')
     expect(battle.history.some((event) => event.kind === 'summon' && event.actor.card.name === '步兵')).toBe(true)
@@ -122,7 +133,7 @@ describe('黄巾之乱', () => {
     const musketeer = BASIC_UNIT_CARDS.find((card) => card.id === 'musketeer')
     const infantry = BASIC_UNIT_CARDS.find((card) => card.id === 'infantry')
     if (!musketeer || !infantry) throw new Error('缺卡')
-    const start = createYellowTurbanBattle()
+    const start = yellowTurbanBattle()
     const player: BoardUnit = {
       uid: 'p',
       side: 'player',
@@ -153,13 +164,13 @@ describe('黄巾之乱', () => {
   })
 
   it('大本营旁边没有空地时不能再召唤', () => {
-    const battle = createYellowTurbanBattle()
+    const battle = yellowTurbanBattle()
     const occupied = new Set(openSummonTiles('player', battle.tiles, new Set()).map(keyOf))
     expect(openSummonTiles('player', battle.tiles, occupied)).toEqual([])
   })
 
   it('圣殿骑士行动前给生命最低的友方回复 1 点，满血就不再加', () => {
-    const start = createYellowTurbanBattle()
+    const start = yellowTurbanBattle()
     const quiet = { playerHand: [], playerDeck: [], enemyHand: [], enemyDeck: [] }
     const knight: BoardUnit = { uid: 'k', side: 'player', card: TEMPLE_KNIGHT_CARD, row: 7, col: 4, hp: 3, entered: 1 }
     const hurt: BoardUnit = { uid: 'a', side: 'player', card: INFANTRY_CARD, row: 7, col: 3, hp: 1, entered: 2 }
@@ -199,7 +210,7 @@ describe('黄巾之乱', () => {
   })
 
   it('警戒优先追击更靠近敌方大本营的敌人，范围内也先打后方', () => {
-    const start = createYellowTurbanBattle()
+    const start = yellowTurbanBattle()
     const quiet = { playerHand: [], playerDeck: [], enemyHand: [], enemyDeck: [] }
     const rear: BoardUnit = { uid: 'rear', side: 'enemy', card: { ...INFANTRY_CARD, move: 0 }, row: 2, col: 2, hp: 6, entered: 2 }
     const front: BoardUnit = { uid: 'front', side: 'enemy', card: { ...INFANTRY_CARD, move: 0 }, row: 5, col: 4, hp: 1, entered: 3 }
@@ -231,7 +242,7 @@ describe('黄巾之乱', () => {
   })
 
   it('普通单位靠近敌人且不能后退，警戒可以后退追击', () => {
-    const start = createYellowTurbanBattle()
+    const start = yellowTurbanBattle()
     const quiet = { playerHand: [], playerDeck: [], enemyHand: [], enemyDeck: [] }
     const beside: BoardUnit = { uid: 'e', side: 'enemy', card: { ...INFANTRY_CARD, move: 0 }, row: 6, col: 3, hp: 4, entered: 2 }
     const plain: BoardUnit = { uid: 'p', side: 'player', card: INFANTRY_CARD, row: 6, col: 1, hp: INFANTRY_CARD.hp, entered: 1 }
@@ -249,7 +260,7 @@ describe('黄巾之乱', () => {
   })
 
   it('撒豆成兵在回合开始时于周围召黄巾兵，没有空位就跳过', () => {
-    const start = createYellowTurbanBattle()
+    const start = yellowTurbanBattle()
     const quiet = { playerHand: [], playerDeck: [], enemyHand: [], enemyDeck: [] }
     const zhang: BoardUnit = { uid: 'z', side: 'enemy', card: ZHANG_JIAO_CARD, row: 2, col: 4, hp: ZHANG_JIAO_CARD.hp, entered: 1 }
     const pad = { playerDeck: [{ uid: 'pad', card: INFANTRY_CARD, cd: 9 }] }
@@ -280,7 +291,7 @@ describe('黄巾之乱', () => {
   })
 
   it('雷电招来对随机敌人造成 3 点法术伤害，魔甲会减伤', () => {
-    const start = createYellowTurbanBattle()
+    const start = yellowTurbanBattle()
     const quiet = { playerHand: [], playerDeck: [], enemyHand: [], enemyDeck: [] }
     const ward = BASIC_UNIT_CARDS.find((card) => card.id === 'ward-guard')
     if (!ward) throw new Error('缺卡')
@@ -313,7 +324,7 @@ describe('黄巾之乱', () => {
   })
 
   it('一方手牌、牌库和场上都没有卡时判负并结算', () => {
-    const start = createYellowTurbanBattle(PLAYER_BASE_HP, BASIC_UNIT_CARDS, keepOrder)
+    const start = yellowTurbanBattle(PLAYER_BASE_HP, BASIC_UNIT_CARDS, keepOrder)
     const player: BoardUnit = { uid: 'p', side: 'player', card: { ...INFANTRY_CARD, move: 0, atk: 9 }, row: 5, col: 4, hp: 4, entered: 1 }
     const enemy: BoardUnit = { uid: 'e', side: 'enemy', card: { ...INFANTRY_CARD, move: 0 }, row: 4, col: 4, hp: 1, entered: 2 }
     const empty = { playerHand: [], playerDeck: [], enemyHand: [], enemyDeck: [] }
@@ -363,7 +374,7 @@ describe('黄巾之乱', () => {
   })
 
   it('没有敌人可追时，贴着黄巾大本营的单位能把它击破', () => {
-    const start = createYellowTurbanBattle()
+    const start = yellowTurbanBattle()
     const breaker: BoardUnit = {
       uid: 'p',
       side: 'player',

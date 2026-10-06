@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { INFANTRY_CARD } from '../data/cards'
 import { DEATH_KNIGHT_CARD, PALADIN_CARD, WARRIOR_CARD } from '../data/wow'
 import { advanceBattle, type BattleState, type BoardUnit } from './battle'
+import { classicRealmTiles } from './realmMap'
 import { createYellowTurbanBattle } from './yellowTurban'
 
 /**
@@ -15,6 +16,7 @@ function act(units: BoardUnit[], queue: string[]): BattleState {
   const start = createYellowTurbanBattle()
   return advanceBattle({
     ...start,
+    tiles: classicRealmTiles(),
     turn: 1,
     units,
     queue,

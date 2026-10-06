@@ -9,7 +9,8 @@ import { UnitCard } from '../ui/UnitCard'
 
 /**
  * 秘境列表。通关过的秘境显示最快时间，并可以挂机。
- * 名字右侧可以看敌人阵容，名字下面是秘境描述。
+ * 名字右侧可以看敌人阵容。不展示阵容的秘境只留描述。
+ * 名字下面是秘境描述。
  *
  * @returns 秘境列表页
  */
@@ -40,9 +41,11 @@ export default function RealmListPage() {
                     </>
                   )}
                 </div>
-                <button type="button" className="shrink-0 text-sm font-semibold text-[#8d6844]" onClick={() => setLineupId(realm.id)}>
-                  敌人阵容
-                </button>
+                {realm.lineup === false ? null : (
+                  <button type="button" className="shrink-0 text-sm font-semibold text-[#8d6844]" onClick={() => setLineupId(realm.id)}>
+                    敌人阵容
+                  </button>
+                )}
               </div>
               {progress ? (
                 <button type="button" className="mt-2 text-sm font-semibold text-[#8d6844]" onClick={() => toggleRealmIdle(realm.id)}>

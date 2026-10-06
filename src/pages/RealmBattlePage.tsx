@@ -115,8 +115,12 @@ function RealmBattle({ realm }: { realm: RealmInfo }) {
   )
 }
 
+/** 胜利战利品框最高占战场的比例。种类再多也在两列里滚动 */
+const VICTORY_LOOT_MAX_HEIGHT = '70%'
+
 /**
  * 胜利后停在战场中间的提示。不自动离开，等玩家点底部的退出。
+ * 战利品按经验、金币、卡牌、材料排成两列。
  *
  * @param props.loot 这一场已经入账的战利品
  * @returns 居中的胜利提示
@@ -125,11 +129,11 @@ function VictoryToast({ loot }: { loot: RealmLoot }) {
   const lines = formatLoot(loot).split(' · ')
   return (
     <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center px-8">
-      <div className="w-full rounded-2xl bg-[#2a241f] px-4 py-4 text-center ring-1 ring-[#5c4a32]" role="status">
-        <p className="text-lg font-semibold">胜利</p>
-        <ul className="mt-2 space-y-1 text-sm leading-6 text-[#e6c36a]">
+      <div className="flex w-full flex-col overflow-hidden rounded-2xl bg-[#2a241f] px-4 py-4 text-center ring-1 ring-[#5c4a32]" role="status" style={{ maxHeight: VICTORY_LOOT_MAX_HEIGHT }}>
+        <p className="shrink-0 text-lg font-semibold">胜利</p>
+        <ul className="mt-2 grid min-h-0 grid-cols-2 gap-x-3 gap-y-1 overflow-y-auto overscroll-y-contain text-sm leading-6 text-[#e6c36a]">
           {lines.map((line, index) => (
-            <li key={`${line}-${index}`}>{line}</li>
+            <li key={`${line}-${index}`} className="min-w-0 break-words">{line}</li>
           ))}
         </ul>
       </div>
