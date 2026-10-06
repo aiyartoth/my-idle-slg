@@ -1,0 +1,47 @@
+src/data/cardType.test.ts
+  s_ceca5e604c7df9::t_8af101e09d5d3c 59-68
+  s_ceca5e604c7df9::t_936370a955f459 100-102
+src/data/cards.ts
+  s_ceca5e604c7df9::t_06df922e2da71d 90-93
+  s_ceca5e604c7df9::t_c6d2f01bca2fa2 122-127
+  s_ceca5e604c7df9::t_026911d52bc97e 76
+  s_ceca5e604c7df9::t_365a5d2c2e281b 107
+src/data/cardCatalog.test.ts
+  s_ceca5e604c7df9::t_9c54f1e0e2f7fa 34-36
+src/data/skills.test.ts
+  s_ceca5e604c7df9::t_468f1d98c80bba 130-139
+src/data/sideRaces.ts
+  s_ceca5e604c7df9::t_92c39f346c9bd1 474-497,499-659,661-708,710-712
+  s_ceca5e604c7df9::t_efa6c4cb1d2ee2 6
+  s_ceca5e604c7df9::t_93b7bbf69cc8bd 660
+  s_ceca5e604c7df9::t_4c254a3676df81 709
+  s_ceca5e604c7df9::t_c55cf8b6fa0902 734-735,737-744
+  s_ceca5e604c7df9::t_154e28397eae1f 498
+src/data/cardType.ts
+  s_ceca5e604c7df9::t_ae4dba8aa80ac9 29
+  s_ceca5e604c7df9::t_37061492771749 47
+  s_ceca5e604c7df9::t_1004003151895d 101-102
+  s_ceca5e604c7df9::t_5ae3368bf7498a 41
+  s_ceca5e604c7df9::t_e35d1e4f8b4017 25
+  s_ceca5e604c7df9::t_4960ea76f916fd 83
+  s_ceca5e604c7df9::t_5600d97d9f98da 111
+  s_ceca5e604c7df9::t_d1c4bb6a5e717d 90
+  s_ceca5e604c7df9::t_f3ac7dc10faa51 112
+  s_ceca5e604c7df9::t_84094c058e693b 71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.45-trip",
+  "base_commit_sha": "ecb3261f97a1b6f8fd8200e8c402cffe3a93c5d0",
+  "prompts": {},
+  "sessions": {
+    "s_ceca5e604c7df9": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "546d3a00-c65e-49d3-b48e-5ab1eb115780",
+        "model": "grok-4.7"
+      },
+      "human_author": "ynanxu <ynanxu@trip.com>"
+    }
+  }
+}
