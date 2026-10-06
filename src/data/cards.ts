@@ -73,7 +73,7 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   infantry: 'white',
   'yellow-infantry': 'white',
   'water-elemental': 'white',
-  /** 弓箭手、黄巾弓箭手、火枪手、法师、侏儒技师、侏儒修理兵、地狱犬、魅魔、高等精灵弓手、高等精灵剑士、矮人猎手、远行者、角鹰兽 */
+  /** 弓箭手、黄巾弓箭手、火枪手、法师、侏儒技师、侏儒修理兵、发条机器人、地狱犬、魅魔、高等精灵弓手、高等精灵剑士、高等精灵祭司、矮人猎手、远行者、角鹰兽、精灵龙、空气元素 */
   archer: 'green',
   'yellow-archer': 'green',
   musketeer: 'green',
@@ -87,6 +87,10 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   'dwarf-hunter': 'green',
   farstrider: 'green',
   hippogryph: 'green',
+  clockwerk: 'green',
+  'high-elf-priest': 'green',
+  'faerie-dragon': 'green',
+  'air-elemental': 'green',
   /** 重甲步兵、魔卫 */
   'heavy-infantry': 'blue',
   'ward-guard': 'blue',
@@ -100,7 +104,7 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   priest: 'green',
   'flying-machine': 'green',
   hunter: 'green',
-  /** 骑士、女巫、破法者、迫击炮小队、攻城器械、狮鹫骑士、末日守卫、恶魔卫士、龙鹰、血骑士、魔导师、奇美拉、火元素、树妖 */
+  /** 骑士、女巫、破法者、迫击炮小队、攻城器械、狮鹫骑士、末日守卫、恶魔卫士、恐惧魔王、龙鹰、血骑士、魔导师、奥术傀儡、奇美拉、火元素、土元素、树妖、雷霆蜥蜴、巡山人、投刃车 */
   knight: 'blue',
   sorceress: 'blue',
   'spell-breaker': 'blue',
@@ -115,6 +119,12 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   chimaera: 'blue',
   'fire-elemental': 'blue',
   dryad: 'blue',
+  dreadlord: 'blue',
+  'arcane-golem': 'blue',
+  'thunder-lizard': 'blue',
+  mountaineer: 'blue',
+  'glaive-thrower': 'blue',
+  'earth-elemental': 'blue',
   /** 战士、潜行者、暗影牧师、冰霜法师、术士 */
   warrior: 'blue',
   rogue: 'blue',

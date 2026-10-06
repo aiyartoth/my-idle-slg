@@ -3,6 +3,7 @@ import { armorSkill, type UnitCardData } from './cards'
 /**
  * 牌少的种族补兵。第一批补侏儒、恶魔、血精灵、高等精灵、矮人、野兽。
  * 第二批把仍不满五张的再补上：侏儒、恶魔、血精灵各两张，高等精灵、野兽、暗夜精灵、元素各一张。
+ * 第三批再补十张：元素两张，侏儒、恶魔、血精灵、高等精灵、野兽、矮人各一张，暗夜精灵两张。
  * 技能都用已经进战斗的种类。紫色传奇名气低于各大阵营领袖。
  */
 
@@ -470,6 +471,245 @@ export const DRYAD_CARD: UnitCardData = {
   ],
 }
 
+/**
+ * 发条机器人。侏儒做的近战机械，锯子打中后溅到旁边，自己有一层甲。
+ */
+export const CLOCKWERK_CARD: UnitCardData = {
+  id: 'clockwerk',
+  name: '发条机器人',
+  rarity: 'green',
+  mark: '钟',
+  race: 'gnome',
+  profession: '机械',
+  cd: 2,
+  atk: 2,
+  hp: 5,
+  move: 1,
+  speed: 1,
+  range: 1,
+  attackKind: 'physical',
+  skills: [
+    armorSkill('plate', 1),
+    { name: '圆锯 1', effect: '普攻命中单位时，对目标相邻的其他敌方造成 1 点物理伤害', kind: 'splash', value: 1 },
+  ],
+}
+
+/**
+ * 恐惧魔王。燃烧军团的将领里偏弱的一档，近战吸血，腐臭打一个随机敌人。
+ */
+export const DREADLORD_CARD: UnitCardData = {
+  id: 'dreadlord',
+  name: '恐惧魔王',
+  rarity: 'blue',
+  mark: '恐',
+  race: 'demon',
+  profession: '恐惧魔王',
+  cd: 3,
+  atk: 3,
+  hp: 7,
+  move: 1,
+  speed: 2,
+  range: 1,
+  attackKind: 'physical',
+  skills: [
+    { name: '吸血 1', effect: '普攻命中单位后，为自己回复 1 点生命，不超过上限', kind: 'leech', value: 1 },
+    { name: '腐臭蜂群 2', effect: '对随机一个敌方造成 2 点法术伤害', kind: 'lightning', value: 2 },
+  ],
+}
+
+/**
+ * 奥术傀儡。血精灵的魔法构造体，魔甲挡法术，反馈专门打法师。
+ */
+export const ARCANE_GOLEM_CARD: UnitCardData = {
+  id: 'arcane-golem',
+  name: '奥术傀儡',
+  rarity: 'blue',
+  mark: '傀',
+  race: 'bloodElf',
+  profession: '傀儡',
+  cd: 3,
+  atk: 2,
+  hp: 6,
+  move: 1,
+  speed: 1,
+  range: 1,
+  attackKind: 'physical',
+  skills: [
+    armorSkill('ward', 1),
+    { name: '反馈 2', effect: '攻击法师时额外造成 2 点伤害', kind: 'feedback', value: 2 },
+  ],
+}
+
+/**
+ * 高等精灵祭司。治疗最虚弱的友方，自己有一层魔甲。类型行带法师，反馈会打到。
+ */
+export const HIGH_ELF_PRIEST_CARD: UnitCardData = {
+  id: 'high-elf-priest',
+  name: '高等精灵祭司',
+  rarity: 'green',
+  mark: '祭',
+  race: 'highElf',
+  profession: '祭司',
+  cd: 2,
+  atk: 1,
+  hp: 3,
+  move: 1,
+  speed: 2,
+  range: 3,
+  attackKind: 'spell',
+  skills: [
+    { name: '治疗 2', effect: '行动开始前，为生命值最低的友方回复 2 点生命值', kind: 'heal', value: 2 },
+    armorSkill('ward', 1),
+  ],
+}
+
+/**
+ * 雷霆蜥蜴。大型野兽，先踩一圈身边的人。
+ */
+export const THUNDER_LIZARD_CARD: UnitCardData = {
+  id: 'thunder-lizard',
+  name: '雷霆蜥蜴',
+  rarity: 'blue',
+  mark: '霆',
+  race: 'beast',
+  profession: '雷霆蜥蜴',
+  cd: 3,
+  atk: 3,
+  hp: 8,
+  move: 1,
+  speed: 1,
+  range: 1,
+  attackKind: 'physical',
+  skills: [
+    {
+      name: '雷霆一击 1',
+      effect: '行动开始前，对相邻敌方造成 1 点法术伤害，并使其下次移动 -1（最低 1）。法术免疫可挡下',
+      kind: 'thunderClap',
+      value: 1,
+    },
+  ],
+}
+
+/**
+ * 巡山人。铁炉堡的矮人步哨，穿着甲，风暴之锤打最近的人并打断行动。
+ */
+export const MOUNTAINEER_CARD: UnitCardData = {
+  id: 'mountaineer',
+  name: '巡山人',
+  rarity: 'blue',
+  mark: '巡',
+  race: 'dwarf',
+  profession: '战士',
+  cd: 3,
+  atk: 2,
+  hp: 6,
+  move: 1,
+  speed: 2,
+  range: 1,
+  attackKind: 'physical',
+  skills: [
+    armorSkill('plate', 1),
+    {
+      name: '风暴之锤 1',
+      effect: '行动开始前，对最近的敌方造成 1 点法术伤害，并取消其本回合剩余行动。法术免疫可挡下',
+      kind: 'stormBolt',
+      value: 1,
+    },
+  ],
+}
+
+/**
+ * 投刃车。暗夜精灵的攻城器械，打建筑更疼，刀刃还会溅到旁边。
+ */
+export const GLAIVE_THROWER_CARD: UnitCardData = {
+  id: 'glaive-thrower',
+  name: '投刃车',
+  rarity: 'blue',
+  mark: '刃',
+  race: 'nightElf',
+  profession: '攻城',
+  cd: 3,
+  atk: 3,
+  hp: 3,
+  move: 1,
+  speed: 1,
+  range: 4,
+  attackKind: 'physical',
+  skills: [
+    { name: '投刃 2', effect: '攻击大本营时额外造成 2 点伤害', kind: 'siege', value: 2 },
+    { name: '弹射 1', effect: '普攻命中单位时，对目标相邻的其他敌方造成 1 点物理伤害', kind: 'splash', value: 1 },
+  ],
+}
+
+/**
+ * 精灵龙。暗夜精灵的小飞龙，能飞，法力闪耀按反馈打法师。
+ */
+export const FAERIE_DRAGON_CARD: UnitCardData = {
+  id: 'faerie-dragon',
+  name: '精灵龙',
+  rarity: 'green',
+  mark: '灵',
+  race: 'nightElf',
+  profession: '精灵龙',
+  cd: 2,
+  atk: 2,
+  hp: 3,
+  move: 2,
+  speed: 3,
+  range: 3,
+  attackKind: 'physical',
+  skills: [
+    { name: '飞行', effect: '移动可以经过河流和石头', kind: 'fly' },
+    { name: '法力闪耀 1', effect: '攻击法师时额外造成 1 点伤害', kind: 'feedback', value: 1 },
+  ],
+}
+
+/**
+ * 土元素。类型行单独成元素。站到前面吃攻击，自己有一层重甲。
+ */
+export const EARTH_ELEMENTAL_CARD: UnitCardData = {
+  id: 'earth-elemental',
+  name: '土元素',
+  rarity: 'blue',
+  mark: '土',
+  race: 'human',
+  profession: '元素',
+  cd: 3,
+  atk: 2,
+  hp: 8,
+  move: 1,
+  speed: 1,
+  range: 1,
+  attackKind: 'physical',
+  skills: [
+    { name: '嘲讽', effect: '敌方会优先靠近并攻击这名单位', kind: 'taunt' },
+    armorSkill('plate', 1),
+  ],
+}
+
+/**
+ * 空气元素。类型行单独成元素。能飞，再打一个随机敌人。
+ */
+export const AIR_ELEMENTAL_CARD: UnitCardData = {
+  id: 'air-elemental',
+  name: '空气元素',
+  rarity: 'green',
+  mark: '气',
+  race: 'human',
+  profession: '元素',
+  cd: 2,
+  atk: 2,
+  hp: 3,
+  move: 2,
+  speed: 3,
+  range: 3,
+  attackKind: 'spell',
+  skills: [
+    { name: '飞行', effect: '移动可以经过河流和石头', kind: 'fly' },
+    { name: '闪电 1', effect: '对随机一个敌方造成 1 点法术伤害', kind: 'lightning', value: 1 },
+  ],
+}
+
 /** 补进图鉴的牌。不含召唤物 */
 export const SIDE_RACE_CARDS: readonly UnitCardData[] = [
   GNOME_TINKER_CARD,
@@ -491,5 +731,15 @@ export const SIDE_RACE_CARDS: readonly UnitCardData[] = [
   CHIMAERA_CARD,
   HIPPOGRYPH_CARD,
   FIRE_ELEMENTAL_CARD,
+  EARTH_ELEMENTAL_CARD,
+  AIR_ELEMENTAL_CARD,
   DRYAD_CARD,
+  CLOCKWERK_CARD,
+  DREADLORD_CARD,
+  ARCANE_GOLEM_CARD,
+  HIGH_ELF_PRIEST_CARD,
+  THUNDER_LIZARD_CARD,
+  MOUNTAINEER_CARD,
+  GLAIVE_THROWER_CARD,
+  FAERIE_DRAGON_CARD,
 ]
