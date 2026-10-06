@@ -205,6 +205,8 @@ export interface Scenario {
   tiles: TileKind[][]
   playerDeck: readonly UnitCardData[]
   enemyDeck: readonly UnitCardData[]
+  /** 战报里敌方的称呼。不传时仍叫黄巾 */
+  enemyLabel?: string
 }
 
 /**
@@ -220,6 +222,7 @@ export function createBattle(scenario: Scenario, random: () => number = Math.ran
     cards.map((card) => ({ uid: `u${nextUid++}`, card, cd: card.cd }))
   const player = pack(shuffleDeck(scenario.playerDeck, random))
   const enemy = pack(shuffleDeck(scenario.enemyDeck, random))
+  const enemyLabel = scenario.enemyLabel ?? '黄巾'
   return {
     turn: 0,
     result: 'ongoing',
@@ -234,11 +237,11 @@ export function createBattle(scenario: Scenario, random: () => number = Math.ran
     playerDeck: player.slice(OPENING_HAND),
     enemyHand: enemy.slice(0, OPENING_HAND),
     enemyDeck: enemy.slice(OPENING_HAND),
-    log: ['开战前，双方洗牌', openingLine('我方', player.slice(0, OPENING_HAND)), openingLine('黄巾', enemy.slice(0, OPENING_HAND))],
+    log: ['开战前，双方洗牌', openingLine('我方', player.slice(0, OPENING_HAND)), openingLine(enemyLabel, enemy.slice(0, OPENING_HAND))],
     history: [
       { turn: 0, kind: 'note', text: '开战前，双方洗牌' },
       { turn: 0, kind: 'note', text: openingLine('我方', player.slice(0, OPENING_HAND)) },
-      { turn: 0, kind: 'note', text: openingLine('黄巾', enemy.slice(0, OPENING_HAND)) },
+      { turn: 0, kind: 'note', text: openingLine(enemyLabel, enemy.slice(0, OPENING_HAND)) },
     ],
     nextUid,
     random,
@@ -1766,11 +1769,12 @@ function damageStep(
 
 /**
  * 心灵之火。给生命最低的友方加上攻击，自己也算。这一步不移动。
+ * 身上已经有这次加攻时不再增加，打出一次攻击后才会清掉。
  *
  * @param state 加攻击前的局面
  * @param queue 去掉这一步之后的队列
  * @param uid 施法者
- * @returns 加上攻击后的局面
+ * @returns 加上攻击后的局面。已经有加攻时攻击不变
  */
 function innerFireAction(state: BattleState, queue: string[], uid: string): BattleState {
   const units = state.units.map((unit) => ({ ...unit }))
@@ -1781,7 +1785,18 @@ function innerFireAction(state: BattleState, queue: string[], uid: string): Batt
   const target = allies.find((unit) => unit.side === actor.side)
   const here = { row: actor.row, col: actor.col }
   if (!target || amount <= 0) return { ...state, queue, routes: [{ uid, path: [here] }], strike: null, log: [] }
-  const buffed = units.map((unit) => (unit.uid === target.uid ? { ...unit, bonusAtk: (unit.bonusAtk ?? 0) + amount } : unit))
+  if ((target.bonusAtk ?? 0) > 0) {
+    const text = `${actor.card.name} 的心灵之火已在 ${target.card.name} 身上，没有叠加`
+    return {
+      ...state,
+      queue,
+      routes: [{ uid, path: [here] }],
+      strike: null,
+      log: [text],
+      history: [...state.history, { turn: state.turn, kind: 'note', text }],
+    }
+  }
+  const buffed = units.map((unit) => (unit.uid === target.uid ? { ...unit, bonusAtk: amount } : unit))
   const text = `${actor.card.name} 使 ${target.card.name} 攻击 +${amount}`
   return {
     ...state,

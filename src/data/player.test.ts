@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { YELLOW_ARCHER_CARD, YELLOW_INFANTRY_CARD, ZHANG_JIAO_CARD } from '../realm/yellowTurban'
 import { ensureCardRarity, INFANTRY_CARD } from './cards'
+import { PALADIN_CARD } from './wow'
 import { playerSaveFrom } from './playerDb'
 import { IDLE_CAP_MS } from './idle'
 import { FURNACE_REFRESH_CRYSTAL } from './furnace'
@@ -106,16 +107,23 @@ describe('冒险者', () => {
       exp: 0,
       deckSeq: 1,
       bagSeq: 1,
-      deck: [{ uid: 'd1', card: bareInfantry }],
+      deck: [
+        { uid: 'd1', card: bareInfantry },
+        { uid: 'd-old-paladin', card: { ...PALADIN_CARD, name: '圣骑士', mark: '圣', rarity: 'blue' } },
+      ],
       bag: [
         { id: 'b1', kind: 'card', card: bareInfantry },
         { id: 'b2', kind: 'card', card: INFANTRY_CARD, count: 1, instanceId: 'd9' },
+        { id: 'b3', kind: 'card', card: { ...INFANTRY_CARD, id: 'mystery', name: '旧名字', rarity: 'red' }, count: 1 },
       ],
     })
-    expect(legacy?.bag).toHaveLength(1)
+    expect(legacy?.bag).toHaveLength(2)
     expect(legacy?.bag[0]).toMatchObject({ kind: 'card', count: 2 })
     expect(legacy?.deck[0]?.card.rarity).toBe('white')
+    expect(legacy?.deck.find((entry) => entry.uid === 'd-old-paladin')?.card).toMatchObject({ name: '圣骑士加文拉德', mark: '加', rarity: 'purple' })
     if (legacy?.bag[0]?.kind === 'card') expect(legacy.bag[0].card.rarity).toBe('white')
+    const mystery = legacy?.bag.find((item) => item.kind === 'card' && item.card.id === 'mystery')
+    if (mystery?.kind === 'card') expect(mystery.card).toMatchObject({ name: '旧名字', rarity: 'red' })
     const bare = { ...INFANTRY_CARD, id: 'mystery' }
     delete (bare as { rarity?: string }).rarity
     expect(ensureCardRarity(bare).rarity).toBe('white')

@@ -30,14 +30,14 @@ export const WARRIOR_CARD: UnitCardData = {
 }
 
 /**
- * 圣骑士。站到前面吃攻击，给最虚弱的友方刷圣光，自己穿着重甲。
+ * 圣骑士加文拉德。紫色传奇，名气低于乌瑟尔和莫格莱尼。站到前面吃攻击，给最虚弱的友方刷圣光，自己穿着重甲。
  * 嘲讽让敌人改打他，圣光术按治疗结算。
  */
 export const PALADIN_CARD: UnitCardData = {
   id: 'paladin',
-  name: '圣骑士',
+  name: '圣骑士加文拉德',
   rarity: 'purple',
-  mark: '圣',
+  mark: '加',
   race: 'human',
   profession: '圣骑士',
   cd: 3,
@@ -127,15 +127,15 @@ export const SHADOW_PRIEST_CARD: UnitCardData = {
 }
 
 /**
- * 萨满。闪电打随机敌人，嗜血让身边的友方更快行动。
+ * 萨满德雷克塔尔。紫色传奇，霜狼氏族的老萨满，名气低于萨尔。闪电打随机敌人，嗜血让身边的友方更快行动。
  * 闪电箭走雷电招来，嗜血走速度光环。
  */
 export const SHAMAN_CARD: UnitCardData = {
   id: 'shaman',
-  name: '萨满',
+  name: '萨满德雷克塔尔',
   rarity: 'purple',
-  mark: '萨',
-  race: 'human',
+  mark: '德',
+  race: 'orc',
   profession: '萨满',
   cd: 3,
   atk: 3,
@@ -209,15 +209,15 @@ export const WARLOCK_CARD: UnitCardData = {
 }
 
 /**
- * 德鲁伊。先治疗，再给最虚弱的友方加攻击，普攻还能缠住敌人。
+ * 德鲁伊纳拉雷克斯。紫色传奇，尖牙德鲁伊，名气低于玛法里奥。先治疗，再给最虚弱的友方加攻击，普攻还能缠住敌人。
  * 愈合、野性印记、纠缠根须分别按治疗、心灵之火和减速结算。
  */
 export const DRUID_CARD: UnitCardData = {
   id: 'druid',
-  name: '德鲁伊',
+  name: '德鲁伊纳拉雷克斯',
   rarity: 'purple',
-  mark: '德',
-  race: 'human',
+  mark: '纳',
+  race: 'nightElf',
   profession: '德鲁伊',
   cd: 3,
   atk: 2,
@@ -228,7 +228,7 @@ export const DRUID_CARD: UnitCardData = {
   attackKind: 'spell',
   skills: [
     { name: '愈合 2', effect: '行动开始前，为生命值最低的友方回复 2 点生命值', kind: 'heal', value: 2 },
-    { name: '野性印记 1', effect: '行动开始前，为生命值最低的友方增加 1 点攻击，直到该友方完成一次攻击', kind: 'innerFire', value: 1 },
+    { name: '野性印记 1', effect: '行动开始前，为生命值最低的友方增加 1 点攻击，直到该友方完成一次攻击，不可叠加', kind: 'innerFire', value: 1 },
     {
       name: '纠缠根须 1',
       effect: '普攻命中后，目标下次移动 -1（最低 1）。若减速留到下回合开始，行动速度也 -1（最低 1），行动后消失',
@@ -239,14 +239,14 @@ export const DRUID_CARD: UnitCardData = {
 }
 
 /**
- * 死亡骑士。站前面嘲讽，普攻减速，打中后吸回生命。
+ * 死亡骑士达里安。橙色传奇，黑锋骑士团的领袖，名气高于普通死亡骑士，仍低于巫妖王。站前面嘲讽，普攻减速，打中后吸回生命。
  * 凋零缠绕按吸血结算，冰霜打击按减速结算。
  */
 export const DEATH_KNIGHT_CARD: UnitCardData = {
   id: 'death-knight',
-  name: '死亡骑士',
+  name: '死亡骑士达里安',
   rarity: 'orange',
-  mark: '死',
+  mark: '达',
   race: 'human',
   profession: '死亡骑士',
   cd: 4,

@@ -35,6 +35,22 @@ export const RARITY_TEXT_CLASS: Record<CardRarity, string> = {
   red: 'text-[#c62828]',
 }
 
+/** 深底上的稀有度名字颜色。战斗日志和召唤队列是深底，白用浅色才看得见 */
+export const RARITY_TEXT_ON_DARK_CLASS: Record<CardRarity, string> = {
+  /** 浅色，深底上仍能读出「白」 */
+  white: 'text-[#f4efe6]',
+  /** 绿 */
+  green: 'text-[#5dce7a]',
+  /** 蓝 */
+  blue: 'text-[#6eb6ef]',
+  /** 紫 */
+  purple: 'text-[#c792ea]',
+  /** 橙 */
+  orange: 'text-[#f0a04a]',
+  /** 红 */
+  red: 'text-[#f07a7a]',
+}
+
 /** 卡牌模块左侧色条，和名字用同一套稀有度 */
 export const RARITY_EDGE_CLASS: Record<CardRarity, string> = {
   /** 白 */
@@ -65,10 +81,10 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   /** 重甲步兵、魔卫 */
   'heavy-infantry': 'blue',
   'ward-guard': 'blue',
-  /** 圣殿骑士、大法师 */
+  /** 圣殿骑士、大法师瓦格斯 */
   'temple-knight': 'purple',
   archmage: 'purple',
-  /** 天公将军张角、山丘之王 */
+  /** 天公将军张角、山丘之王穆拉丁 */
   'zhang-jiao': 'orange',
   'mountain-king': 'orange',
   /** 牧师、飞行器、猎人 */
@@ -88,11 +104,11 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   'shadow-priest': 'blue',
   'frost-mage': 'blue',
   warlock: 'blue',
-  /** 圣骑士、萨满、德鲁伊 */
+  /** 圣骑士加文拉德、萨满德雷克塔尔、德鲁伊纳拉雷克斯 */
   paladin: 'purple',
   shaman: 'purple',
   druid: 'purple',
-  /** 死亡骑士 */
+  /** 死亡骑士达里安 */
   'death-knight': 'orange',
   /** 魔兽传奇生物。召唤物是白 */
   thrall: 'orange',

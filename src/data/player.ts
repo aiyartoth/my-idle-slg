@@ -5,7 +5,7 @@ import { INITIAL_DECK, type UnitCardData } from './cards'
 import { formatLoot, lootForClears, type RealmLoot } from './drops'
 import { crystalForCard, findFurnaceRecipe, FURNACE_OFFER_COUNT, FURNACE_REFRESH_CRYSTAL, rollFurnaceOfferIds, starterFurnaceOfferIds } from './furnace'
 import { IDLE_CAP_MS, idleClearCount, OFFLINE_SETTLE_MS, type SettlementReport } from './idle'
-import { normalizeBagItem, readPlayerSave, stackBagItems, writePlayerSave, type PlayerSave } from './playerDb'
+import { migrateLegacySave, readPlayerSave, writePlayerSave, type PlayerSave } from './playerDb'
 
 /** 开局金币。没有存档时用这个数，读到存档后以存档为准 */
 export const STARTING_GOLD = 0
@@ -555,16 +555,17 @@ export async function loadPlayer(): Promise<void> {
  * @param save 从 IndexedDB 读出的进度
  */
 export function restorePlayer(save: PlayerSave): void {
-  gold = save.gold
-  crystal = save.crystal ?? 0
-  furnaceOffers = keptFurnaceOffers(save.furnaceOffers)
-  level = save.level
-  exp = save.exp
-  deck = save.deck.map((entry) => ({ ...entry }))
-  bag = stackBagItems(save.bag.map((item) => normalizeBagItem(item)))
-  realms = { ...(save.realms ?? {}) }
-  activityLog = save.activityLog ? save.activityLog.map((entry) => ({ ...entry })) : []
-  lastSeenAt = save.lastSeenAt ?? 0
+  const next = migrateLegacySave(save)
+  gold = next.gold
+  crystal = next.crystal ?? 0
+  furnaceOffers = keptFurnaceOffers(next.furnaceOffers)
+  level = next.level
+  exp = next.exp
+  deck = next.deck.map((entry) => ({ ...entry }))
+  bag = next.bag.map((item) => ({ ...item }))
+  realms = { ...(next.realms ?? {}) }
+  activityLog = (next.activityLog ?? []).map((entry) => ({ ...entry }))
+  lastSeenAt = next.lastSeenAt ?? 0
   deckSeq = nextSeq(deck.map((entry) => entry.uid), 'd', save.deckSeq)
   bagSeq = nextSeq(bag.map((item) => item.id), 'b', save.bagSeq)
   emit()

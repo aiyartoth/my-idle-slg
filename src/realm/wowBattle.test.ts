@@ -68,7 +68,7 @@ describe('魔兽世界职业技能', () => {
     )
     expect(drained.units.find((item) => item.uid === 'd')?.hp).toBe(8)
     expect(drained.units.find((item) => item.uid === 'e')).toMatchObject({ hp: 3, slow: 1 })
-    expect(drained.log).toContain('死亡骑士 吸取 2 点生命')
+    expect(drained.log).toContain('死亡骑士达里安 吸取 2 点生命')
 
     const full = act(
       [

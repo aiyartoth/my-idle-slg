@@ -2,6 +2,7 @@ import type { UnitCardData } from '../data/cards'
 import { rollClearLoot, type RealmLoot } from '../data/drops'
 import { getBaseHp, getDeckCards, grantBattleLoot, noteBattleResult, recordRealmClear, releaseExtraLegends } from '../data/player'
 import { advanceBattle, type BattleState } from './battle'
+import { createStormwindBattle } from './stormwind'
 import { createYellowTurbanBattle, realmName } from './yellowTurban'
 
 /** 后台推进一拍的间隔。离开战斗页也不会停 */
@@ -84,18 +85,32 @@ export function subscribeSession(listener: () => void): () => void {
 }
 
 /**
- * 进入黄巾之乱。已经有一场没确认的战斗时不另开。
+ * 进入一个已开放的秘境。已经有一场没确认的战斗时不另开。
+ *
+ * @param realmId 秘境 id。不认识的 id 不会开局
  */
-export function ensureYellowTurbanBattle(): void {
+export function ensureRealmBattle(realmId: string): void {
   if (session.status !== 'idle') return
+  const battle = createRealmBattle(realmId)
+  if (!battle) return
   releaseExtraLegends()
   battleStartedAt = Date.now()
-  publish({
-    status: 'running',
-    realmId: 'yellow-turban',
-    battle: createYellowTurbanBattle(getBaseHp(), getDeckCards()),
-  })
+  publish({ status: 'running', realmId, battle })
   if (!timer) timer = window.setInterval(tick, TURN_GAP_MS)
+}
+
+/**
+ * 按秘境 id 摆开局。还没接到战斗的秘境返回空。
+ *
+ * @param realmId 秘境 id
+ * @returns 开好的局面。这个 id 不能打时为 null
+ */
+function createRealmBattle(realmId: string): BattleState | null {
+  const playerBaseHp = getBaseHp()
+  const playerDeck = getDeckCards()
+  if (realmId === 'yellow-turban') return createYellowTurbanBattle(playerBaseHp, playerDeck)
+  if (realmId === 'stormwind') return createStormwindBattle(playerBaseHp, playerDeck)
+  return null
 }
 
 /**

@@ -1,7 +1,7 @@
 import { armorSkill, type UnitCardData } from './cards'
 
 /**
- * 水元素。大法师每回合召出来的单位，同时进图鉴。
+ * 水元素。大法师瓦格斯每回合召出来的单位，同时进图鉴。
  * 数值按步兵收一档：能站住，但自己没有技能。
  */
 export const WATER_ELEMENTAL_CARD: UnitCardData = {
@@ -86,7 +86,7 @@ export const PRIEST_CARD: UnitCardData = {
   attackKind: 'spell',
   skills: [
     { name: '治疗 2', effect: '行动开始前，为生命值最低的友方回复 2 点生命值', kind: 'heal', value: 2 },
-    { name: '心灵之火 1', effect: '行动开始前，为生命值最低的友方增加 1 点攻击，直到该友方完成一次攻击', kind: 'innerFire', value: 1 },
+    { name: '心灵之火 1', effect: '行动开始前，为生命值最低的友方增加 1 点攻击，直到该友方完成一次攻击，不可叠加', kind: 'innerFire', value: 1 },
   ],
 }
 
@@ -239,14 +239,14 @@ export const GRYPHON_RIDER_CARD: UnitCardData = {
 }
 
 /**
- * 大法师。人类英雄。暴风雪打范围内的敌人，水元素每回合站出来，光环给身边加速。
+ * 大法师瓦格斯。紫色传奇，名气低于吉安娜。暴风雪打范围内的敌人，水元素每回合站出来，光环给身边加速。
  * 不做法师的终极技能群体传送。
  */
 export const ARCHMAGE_CARD: UnitCardData = {
   id: 'archmage',
-  name: '大法师',
+  name: '大法师瓦格斯',
   rarity: 'purple',
-  mark: '大',
+  mark: '瓦',
   race: 'human',
   profession: '法师',
   cd: 4,
@@ -264,14 +264,14 @@ export const ARCHMAGE_CARD: UnitCardData = {
 }
 
 /**
- * 山丘之王。矮人英雄。风暴之锤打最近的人并打断行动，雷霆一击打身边，重击取消目标剩余行动。
+ * 山丘之王穆拉丁。橙色传奇，铜须一族里名气很响。风暴之锤打最近的人并打断行动，雷霆一击打身边，重击取消目标剩余行动。
  * 不放天神下凡。
  */
 export const MOUNTAIN_KING_CARD: UnitCardData = {
   id: 'mountain-king',
-  name: '山丘之王',
+  name: '山丘之王穆拉丁',
   rarity: 'orange',
-  mark: '山',
+  mark: '穆',
   race: 'dwarf',
   profession: '战士',
   cd: 4,

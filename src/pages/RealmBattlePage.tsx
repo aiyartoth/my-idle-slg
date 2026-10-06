@@ -3,9 +3,10 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import type { BoardUnit, BattleActor, BattleEvent, BattleStrike, DamageDetail, HandCard, UnitRoute } from '../realm/battle'
 import { BOARD_SIZE, type TileKind } from '../realm/board'
-import { skillLine } from '../data/cards'
+import { RARITY_TEXT_CLASS, RARITY_TEXT_ON_DARK_CLASS, skillLine } from '../data/cards'
 import { formatLoot, type RealmLoot } from '../data/drops'
-import { ensureYellowTurbanBattle, exitBattle, getSession, markBattleSettled, retainBattleView, subscribeSession } from '../realm/battleSession'
+import { ensureRealmBattle, exitBattle, getSession, markBattleSettled, retainBattleView, subscribeSession } from '../realm/battleSession'
+import { REALMS, type RealmInfo } from '../realm/yellowTurban'
 
 /** 沿一格滑动的时间。移动力最多 2，两格走完仍赶在下一名兵行动之前 */
 const MOVE_STEP_MS = 320
@@ -14,13 +15,14 @@ const MOVE_STEP_MS = 320
 const SUMMON_MS = 500
 
 /**
- * 秘境战斗。目前只有黄巾之乱，其他 id 先当作还没开放。
+ * 秘境战斗。列表里没开放的 id 进不了战场。
  *
  * @returns 棋盘战或未开放说明
  */
 export default function RealmBattlePage() {
   const { realmId } = useParams()
-  if (realmId !== 'yellow-turban') {
+  const realm = REALMS.find((item) => item.id === realmId && item.open)
+  if (!realm) {
     return (
       <div className="px-4 py-4">
         <p>这个秘境还没开放。</p>
@@ -30,24 +32,25 @@ export default function RealmBattlePage() {
       </div>
     )
   }
-  return <YellowTurbanBattle />
+  return <RealmBattle realm={realm} />
 }
 
 /**
- * 黄巾之乱自动打完。下方是我方还在冷却的牌，日志收在右上角。
+ * 一场秘境自动打完。下方是我方还在冷却的牌，日志收在右上角。
  *
+ * @param props.realm 当前秘境
  * @returns 战斗场面
  */
-function YellowTurbanBattle() {
+function RealmBattle({ realm }: { realm: RealmInfo }) {
   const navigate = useNavigate()
   const session = useSyncExternalStore(subscribeSession, getSession)
   const [logOpen, setLogOpen] = useState(false)
   const [settledStamp, setSettledStamp] = useState(-1)
   useEffect(() => {
-    ensureYellowTurbanBattle()
+    ensureRealmBattle(realm.id)
     return retainBattleView()
-  }, [])
-  if (session.status === 'idle' || session.realmId !== 'yellow-turban') {
+  }, [realm.id])
+  if (session.status === 'idle' || session.realmId !== realm.id) {
     return <p className="px-4 py-4 text-sm text-[#c8b49a]">正在进入战场。</p>
   }
   const battle = session.battle
@@ -69,7 +72,7 @@ function YellowTurbanBattle() {
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       <div className="flex items-center justify-between gap-3 px-3 pt-3">
-        <h1 className="text-lg font-semibold">黄巾之乱</h1>
+        <h1 className="text-lg font-semibold">{realm.name}</h1>
         <p className="text-sm font-semibold tabular-nums">回合 {Math.max(battle.turn, 1)}</p>
         <div className="flex shrink-0 items-center gap-3 text-sm">
           <button type="button" aria-expanded={logOpen} onClick={() => setLogOpen(true)} className="text-[#f4efe6]">
@@ -94,8 +97,9 @@ function YellowTurbanBattle() {
           playerDeck={battle.playerDeck.length}
           enemyHand={battle.enemyHand.length}
           enemyDeck={battle.enemyDeck.length}
+          enemyLabel={realm.enemyLabel}
         />
-        <TerrainLegend />
+        <TerrainLegend enemyLabel={realm.enemyLabel} />
       </div>
       {lootReady && loot ? <VictoryToast loot={loot} /> : null}
       <CooldownQueue cards={battle.playerHand} />
@@ -106,7 +110,7 @@ function YellowTurbanBattle() {
           </button>
         </div>
       ) : null}
-      {logOpen ? <BattleLog history={battle.history} onClose={() => setLogOpen(false)} /> : null}
+      {logOpen ? <BattleLog history={battle.history} enemyLabel={realm.enemyLabel} onClose={() => setLogOpen(false)} /> : null}
     </div>
   )
 }
@@ -133,28 +137,29 @@ function VictoryToast({ loot }: { loot: RealmLoot }) {
   )
 }
 
+/** 召唤队列一行的高度。两行再加一条缝，多出来的牌在队列里滚 */
+const QUEUE_ROW_HEIGHT = '1.75rem'
+
 /**
- * 我方还在冷却、等待召唤的牌。一行两张，只留名字、剩余冷却、攻击和血量。
- * 冷却到 0 并成功上场后会离开这里。
+ * 我方还在冷却、等待召唤的牌。一行两张，只留名字和剩余冷却。
+ * 最多露出两行，再多就在这块里滚动，不把棋盘挤下去。冷却到 0 并成功上场后会离开这里。
  *
  * @param props.cards 我方手牌
  * @returns 贴在战场下方的队列
  */
 function CooldownQueue({ cards }: { cards: readonly HandCard[] }) {
   return (
-    <section className="border-t border-[#3a322b] bg-[#1a1613] px-3 pt-2 pb-3" aria-label="召唤队列">
+    <section className="shrink-0 border-t border-[#3a322b] bg-[#1a1613] px-3 pt-1.5 pb-2" aria-label="召唤队列">
       <h2 className="text-xs tracking-wide text-[#c8b49a]">召唤队列</h2>
-      {cards.length === 0 ? <p className="mt-2 text-sm text-[#a89886]">没有等待冷却的卡牌</p> : null}
-      <ul className="mt-2 grid grid-cols-2 gap-2">
+      {cards.length === 0 ? <p className="mt-1 text-xs text-[#a89886]">没有等待冷却的卡牌</p> : null}
+      <ul
+        className="mt-1 grid grid-cols-2 gap-1 overflow-y-auto overscroll-y-contain"
+        style={{ maxHeight: `calc(${QUEUE_ROW_HEIGHT} * 2 + 0.25rem)` }}
+      >
         {cards.map((card) => (
-          <li key={card.uid} className="min-w-0 rounded-lg bg-[#2a241f] px-2.5 py-2">
-            <div className="flex items-baseline justify-between gap-2">
-              <p className="truncate text-sm font-semibold">{card.card.name}</p>
-              <p className="shrink-0 text-sm tabular-nums">CD {card.cd}</p>
-            </div>
-            <p className="mt-1 text-[11px] text-[#c8b49a]">
-              攻击 {card.card.atk} · 血量 {card.card.hp}
-            </p>
+          <li key={card.uid} className="flex h-7 min-w-0 items-center justify-between gap-2 rounded-md bg-[#2a241f] px-2">
+            <p className={`truncate text-xs font-semibold ${RARITY_TEXT_ON_DARK_CLASS[card.card.rarity]}`}>{card.card.name}</p>
+            <p className="shrink-0 text-xs tabular-nums">CD {card.cd}</p>
           </li>
         ))}
       </ul>
@@ -166,10 +171,11 @@ function CooldownQueue({ cards }: { cards: readonly HandCard[] }) {
  * 从右上角打开的战报。点单位名可以看属性和这一击的算法。
  *
  * @param props.history 整场累计的战报
+ * @param props.enemyLabel 敌方在战报里的称呼
  * @param props.onClose 关掉日志
  * @returns 日志层
  */
-function BattleLog({ history, onClose }: { history: readonly BattleEvent[]; onClose: () => void }) {
+function BattleLog({ history, enemyLabel, onClose }: { history: readonly BattleEvent[]; enemyLabel: string; onClose: () => void }) {
   const [picked, setPicked] = useState<{ actor: BattleActor; detail?: DamageDetail } | null>(null)
   return (
     <div className="fixed inset-0 z-50 bg-black/40">
@@ -189,7 +195,7 @@ function BattleLog({ history, onClose }: { history: readonly BattleEvent[]; onCl
               <ul className="mt-1 space-y-1 text-sm leading-6">
                 {group.events.map((event, index) => (
                   <li key={`${group.turn}-${index}`}>
-                    <LogLine event={event} onPick={setPicked} />
+                    <LogLine event={event} enemyLabel={enemyLabel} onPick={setPicked} />
                   </li>
                 ))}
               </ul>
@@ -197,7 +203,7 @@ function BattleLog({ history, onClose }: { history: readonly BattleEvent[]; onCl
           ))}
         </ol>
       </div>
-      {picked ? <UnitSheet actor={picked.actor} detail={picked.detail} onClose={() => setPicked(null)} /> : null}
+      {picked ? <UnitSheet actor={picked.actor} detail={picked.detail} enemyLabel={enemyLabel} onClose={() => setPicked(null)} /> : null}
       </div>
     </div>
   )
@@ -207,28 +213,31 @@ function BattleLog({ history, onClose }: { history: readonly BattleEvent[]; onCl
  * 一行战报。单位名是按钮，点开后看属性和伤害来源。
  *
  * @param props.event 一条记录
+ * @param props.enemyLabel 敌方称呼
  * @param props.onPick 选中单位
  * @returns 一行文字
  */
 function LogLine({
   event,
+  enemyLabel,
   onPick,
 }: {
   event: BattleEvent
+  enemyLabel: string
   onPick: (picked: { actor: BattleActor; detail?: DamageDetail }) => void
 }) {
   if (event.kind === 'note' || event.kind === 'end') return <span>{event.text}</span>
   if (event.kind === 'draw') {
     return (
       <span>
-        {sideName(event.actor.side)}抽到 <ActorButton actor={event.actor} onPick={onPick} />
+        {sideName(event.actor.side, enemyLabel)}抽到 <ActorButton actor={event.actor} onPick={onPick} />
       </span>
     )
   }
   if (event.kind === 'summon') {
     return (
       <span>
-        {sideName(event.actor.side)}召唤 <ActorButton actor={event.actor} onPick={onPick} />
+        {sideName(event.actor.side, enemyLabel)}召唤 <ActorButton actor={event.actor} onPick={onPick} />
       </span>
     )
   }
@@ -256,7 +265,7 @@ function LogLine({
   if (event.kind === 'base') {
     return (
       <span>
-        <ActorButton actor={event.attacker} onPick={onPick} /> 对{event.base === 'enemy' ? '黄巾大本营' : '我方大本营'}造成 {event.damage}
+        <ActorButton actor={event.attacker} onPick={onPick} /> 对{event.base === 'enemy' ? `${enemyLabel}大本营` : '我方大本营'}造成 {event.damage}
       </span>
     )
   }
@@ -286,7 +295,7 @@ function ActorButton({
   onPick: (picked: { actor: BattleActor; detail?: DamageDetail }) => void
 }) {
   return (
-    <button type="button" onClick={() => onPick({ actor, detail })} className="underline decoration-[#c8b49a] underline-offset-2">
+    <button type="button" onClick={() => onPick({ actor, detail })} className={`underline decoration-[#c8b49a] underline-offset-2 ${RARITY_TEXT_ON_DARK_CLASS[actor.card.rarity]}`}>
       {actor.card.name}
     </button>
   )
@@ -297,16 +306,19 @@ function ActorButton({
  *
  * @param props.actor 点中的单位
  * @param props.detail 这一击的计算。从抽牌、召唤点进来时没有
+ * @param props.enemyLabel 敌方称呼
  * @param props.onClose 回到日志
  * @returns 浮层
  */
 function UnitSheet({
   actor,
   detail,
+  enemyLabel,
   onClose,
 }: {
   actor: BattleActor
   detail?: DamageDetail
+  enemyLabel: string
   onClose: () => void
 }) {
   const card = actor.card
@@ -314,9 +326,9 @@ function UnitSheet({
     <div className="absolute inset-x-0 bottom-0 max-h-[78%] overflow-y-auto rounded-t-2xl bg-[#f4efe6] px-4 pt-4 pb-6 text-[#241f1a]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-lg font-semibold">{card.name}</h3>
+          <h3 className={`text-lg font-semibold ${RARITY_TEXT_CLASS[card.rarity]}`}>{card.name}</h3>
           <p className="text-sm text-[#6d6256]">
-            {sideName(actor.side)} · {card.attackKind === 'spell' ? '法术' : '物理'}
+            {sideName(actor.side, enemyLabel)} · {card.attackKind === 'spell' ? '法术' : '物理'}
             {actor.hp !== undefined ? ` · 当时生命 ${actor.hp}` : ''}
           </p>
         </div>
@@ -407,11 +419,12 @@ function groupByTurn(history: readonly BattleEvent[]): { turn: number; events: B
 /**
  * 日志里的阵营称呼。
  *
- * @param side 我方或黄巾
+ * @param side 我方或敌方
+ * @param enemyLabel 敌方称呼
  * @returns 称呼
  */
-function sideName(side: BattleActor['side']): string {
-  return side === 'player' ? '我方' : '黄巾'
+function sideName(side: BattleActor['side'], enemyLabel: string): string {
+  return side === 'player' ? '我方' : enemyLabel
 }
 
 /** 棋盘上正在滑动的一名兵。生命先保持移动前的值，滑完再换成结算后的 */
@@ -436,11 +449,12 @@ interface ShownUnit {
  * @param props.stamp 当前局面的序号。动画播完才回传同一个序号
  * @param props.onSettled 这一步的滑动结束后调用
  * @param props.playerBaseHp 我方大本营生命
- * @param props.enemyBaseHp 黄巾大本营生命
+ * @param props.enemyBaseHp 敌方大本营生命
  * @param props.playerHand 我方手牌张数
  * @param props.playerDeck 我方牌库剩余张数
- * @param props.enemyHand 黄巾手牌张数
- * @param props.enemyDeck 黄巾牌库剩余张数
+ * @param props.enemyHand 敌方手牌张数
+ * @param props.enemyDeck 敌方牌库剩余张数
+ * @param props.enemyLabel 敌方称呼
  * @returns 棋盘
  */
 function Board({
@@ -456,6 +470,7 @@ function Board({
   playerDeck,
   enemyHand,
   enemyDeck,
+  enemyLabel,
 }: {
   tiles: TileKind[][]
   units: readonly BoardUnit[]
@@ -469,6 +484,7 @@ function Board({
   playerDeck: number
   enemyHand: number
   enemyDeck: number
+  enemyLabel: string
 }) {
   const boardRef = useRef<HTMLDivElement>(null)
   const shown = useSlidingUnits(units, routes, strike, stamp, onSettled)
@@ -482,7 +498,7 @@ function Board({
       <div className="grid grid-cols-10 gap-px" role="grid" aria-label="战场">
         {tiles.map((row, rowIndex) =>
           row.map((tile, col) => (
-            <div key={`${rowIndex}-${col}`} role="gridcell" aria-label={cellLabel(tile)} className={`aspect-square rounded-[2px] ${tileClass(tile)}`} />
+            <div key={`${rowIndex}-${col}`} role="gridcell" aria-label={cellLabel(tile, enemyLabel)} className={`aspect-square rounded-[2px] ${tileClass(tile)}`} />
           )),
         )}
       </div>
@@ -490,12 +506,12 @@ function Board({
         <BaseHp block={playerBase} hp={playerBaseHp} hand={playerHand} deck={playerDeck} label="我方大本营" gapTotal={gapTotal} struck={strikeHitsBlock(cue, playerBase)} />
       ) : null}
       {enemyBase ? (
-        <BaseHp block={enemyBase} hp={enemyBaseHp} hand={enemyHand} deck={enemyDeck} label="黄巾大本营" gapTotal={gapTotal} struck={strikeHitsBlock(cue, enemyBase)} />
+        <BaseHp block={enemyBase} hp={enemyBaseHp} hand={enemyHand} deck={enemyDeck} label={`${enemyLabel}大本营`} gapTotal={gapTotal} struck={strikeHitsBlock(cue, enemyBase)} />
       ) : null}
       {shown.units.map((unit) => (
         <div
           key={unit.uid}
-          aria-label={unitLabel(unit)}
+          aria-label={unitLabel(unit, enemyLabel)}
           className={`absolute z-10 flex flex-col items-center justify-center overflow-hidden rounded-[2px] ${unit.side === 'player' ? 'bg-[#d7ead4] text-[#1d3a28]' : 'bg-[#f0d0cc] text-[#5c2424]'} ${strikeRing(unit.uid, cue)} ${summoning.has(unit.uid) ? 'battle-summon-unit' : ''}`}
           style={{
             ...cellBox(unit.row, unit.col, gapTotal),
@@ -504,7 +520,7 @@ function Board({
             transitionTimingFunction: 'linear',
           }}
         >
-          <span className="line-clamp-2 w-full px-px text-center text-[9px] leading-[1.05] font-semibold">{unit.card.name}</span>
+          <span className={`line-clamp-2 w-full px-px text-center text-[9px] leading-[1.05] font-semibold ${RARITY_TEXT_CLASS[unit.card.rarity]}`}>{unit.card.name}</span>
           <span className="text-[9px] leading-none tabular-nums">
             {unit.card.atk + (unit.bonusAtk ?? 0)}/{unit.hp}
           </span>
@@ -799,16 +815,17 @@ function toShown(unit: BoardUnit): ShownUnit {
 /**
  * 地形图例，方便对照棋盘上的颜色。
  *
+ * @param props.enemyLabel 敌方称呼
  * @returns 图例
  */
-function TerrainLegend() {
+function TerrainLegend({ enemyLabel }: { enemyLabel: string }) {
   return (
     <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-[#c8b49a]">
       <span>森林</span>
       <span>河流</span>
       <span>石头</span>
       <span>绿营为我方</span>
-      <span>红营为黄巾</span>
+      <span>红营为{enemyLabel}</span>
     </p>
   )
 }
@@ -825,7 +842,7 @@ interface BaseBlock {
  * 找出一侧大本营占的矩形，用来把血量放在营区正中。
  *
  * @param tiles 棋盘
- * @param kind 我方或黄巾大本营
+ * @param kind 我方或敌方大本营
  * @returns 左上角和占的行列数。没有这种格子时为 null
  */
 function baseBlock(tiles: readonly (readonly TileKind[])[], kind: 'playerBase' | 'enemyBase'): BaseBlock | null {
@@ -912,14 +929,15 @@ function tileClass(tile: TileKind): string {
  * 给格子读出来的说明。
  *
  * @param tile 地形
+ * @param enemyLabel 敌方称呼
  * @returns 读屏文字
  */
-function cellLabel(tile: TileKind): string {
+function cellLabel(tile: TileKind, enemyLabel: string): string {
   if (tile === 'forest') return '森林'
   if (tile === 'river') return '河流'
   if (tile === 'stone') return '石头'
   if (tile === 'playerBase') return '我方大本营'
-  if (tile === 'enemyBase') return '黄巾大本营'
+  if (tile === 'enemyBase') return `${enemyLabel}大本营`
   return '空地'
 }
 
@@ -927,8 +945,9 @@ function cellLabel(tile: TileKind): string {
  * 浮在格子上的兵，读屏用。
  *
  * @param unit 正在显示的兵
+ * @param enemyLabel 敌方称呼
  * @returns 阵营、名字和生命
  */
-function unitLabel(unit: ShownUnit): string {
-  return `${unit.side === 'player' ? '我方' : '黄巾'}${unit.card.name}，攻击 ${unit.card.atk + (unit.bonusAtk ?? 0)}，血量 ${unit.hp}`
+function unitLabel(unit: ShownUnit, enemyLabel: string): string {
+  return `${unit.side === 'player' ? '我方' : enemyLabel}${unit.card.name}，攻击 ${unit.card.atk + (unit.bonusAtk ?? 0)}，血量 ${unit.hp}`
 }

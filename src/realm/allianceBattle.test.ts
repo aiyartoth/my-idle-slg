@@ -87,6 +87,10 @@ describe('人类阵营技能', () => {
     const struck = act([buffed, foe], ['a'])
     expect(struck.strike).toMatchObject({ amount: 3, targetUid: 'e' })
     expect(struck.units.find((item) => item.uid === 'a')?.bonusAtk).toBe(0)
+
+    const again = act([priest, { ...hurt, bonusAtk: 1 }], ['fire:p'])
+    expect(again.units.find((item) => item.uid === 'a')?.bonusAtk).toBe(1)
+    expect(again.log[0]).toContain('没有叠加')
   })
 
   it('女巫把低血敌人变羊，法术免疫不受变形和减速', () => {

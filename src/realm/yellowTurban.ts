@@ -37,8 +37,10 @@ export interface RealmInfo {
   name: string
   /** 是否已经开放 */
   open: boolean
-  /** 列表上的一行说明 */
-  detail: string
+  /** 名字下面的秘境描述 */
+  description: string
+  /** 战报和棋盘上对敌方的称呼 */
+  enemyLabel: string
 }
 
 /**
@@ -51,13 +53,21 @@ export function realmName(realmId: string): string {
   return REALMS.find((realm) => realm.id === realmId)?.name ?? realmId
 }
 
-/** 目前只开放黄巾之乱 */
+/** 已开放的秘境。没开放的条目不要放进来 */
 export const REALMS: readonly RealmInfo[] = [
   {
     id: 'yellow-turban',
     name: '黄巾之乱',
     open: true,
-    detail: '敌方大本营 10 · 黄巾步兵、黄巾弓箭手、天公将军张角',
+    description: '岁在甲子，天下大吉。张角称天公将军，黄巾军连夜涌出山谷，把这处营地围了起来。',
+    enemyLabel: '黄巾',
+  },
+  {
+    id: 'stormwind',
+    name: '暴风城',
+    open: true,
+    description: '战火烧到暴风城下，城门已经落下。城墙上圣光与奥术一起亮起，守军不肯退让半步。',
+    enemyLabel: '暴风',
   },
 ]
 

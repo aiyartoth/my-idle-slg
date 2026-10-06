@@ -1,4 +1,5 @@
 import type { ActivityLogEntry, BagItem, DeckEntry, RealmProgress } from './player'
+import { findCardById } from './cardCatalog'
 
 /** 读档时最多留下的日志条数，和首页展示上限一致 */
 const SAVED_ACTIVITY_LIMIT = 50
@@ -98,20 +99,55 @@ export function playerSaveFrom(value: unknown): PlayerSave | null {
   if (!isCount(save.deckSeq) || !isCount(save.bagSeq)) return null
   if (!Array.isArray(save.deck) || !Array.isArray(save.bag)) return null
   if (!save.deck.every(isDeckEntry) || !save.bag.every(isBagItem)) return null
+  return migrateLegacySave({
+    gold: save.gold,
+    level: save.level,
+    exp: save.exp,
+    deckSeq: save.deckSeq,
+    bagSeq: save.bagSeq,
+    deck: save.deck,
+    bag: save.bag,
+    realms: save.realms === undefined ? undefined : realmMapFrom(save.realms),
+    lastSeenAt: isCount(save.lastSeenAt) ? save.lastSeenAt : undefined,
+    activityLog: Array.isArray(save.activityLog) ? activityLogFrom(save.activityLog) : undefined,
+    crystal: isCount(save.crystal) ? save.crystal : undefined,
+    furnaceOffers: Array.isArray(save.furnaceOffers) ? furnaceOffersFrom(save.furnaceOffers) : undefined,
+  })
+}
+
+/**
+ * 把开发期旧档收成当前结构。正式版上线后删掉这一处，读档和恢复进度都不再改写存档。
+ * 图鉴里有的牌换成当前配置，名字、稀有度、种族和技能跟着图鉴走。
+ * 图鉴没有的牌只补稀有度。背包里拆开的同名牌叠回去。缺的进度字段补空。
+ *
+ * @param save 结构已经核对过的存档
+ * @returns 收成当前结构的存档
+ */
+export function migrateLegacySave(save: PlayerSave): PlayerSave {
   return {
     gold: save.gold,
     level: save.level,
     exp: save.exp,
     deckSeq: save.deckSeq,
     bagSeq: save.bagSeq,
-    deck: save.deck.map((entry) => ({ ...entry, card: ensureCardRarity(entry.card) })),
+    deck: save.deck.map((entry) => ({ ...entry, card: syncSavedCard(entry.card) })),
     bag: stackBagItems(save.bag.map((item) => normalizeBagItem(item))),
-    realms: realmMapFrom(save.realms),
-    lastSeenAt: isCount(save.lastSeenAt) ? save.lastSeenAt : 0,
-    activityLog: activityLogFrom(save.activityLog),
-    crystal: isCount(save.crystal) ? save.crystal : 0,
-    furnaceOffers: furnaceOffersFrom(save.furnaceOffers),
+    realms: save.realms ?? {},
+    lastSeenAt: save.lastSeenAt ?? 0,
+    activityLog: save.activityLog ?? [],
+    crystal: save.crystal ?? 0,
+    furnaceOffers: save.furnaceOffers ?? [],
   }
+}
+
+/**
+ * 旧档里的牌对齐图鉴。认识的牌用图鉴当前这张，不认识的只补稀有度。
+ *
+ * @param card 存档里的单位卡
+ * @returns 对齐后的单位卡
+ */
+function syncSavedCard(card: UnitCardData): UnitCardData {
+  return findCardById(card.id) ?? ensureCardRarity(card)
 }
 
 /**
@@ -123,7 +159,7 @@ export function playerSaveFrom(value: unknown): PlayerSave | null {
 export function normalizeBagItem(item: BagItem): BagItem {
   if (item.kind === 'material') return { ...item, count: item.count >= 1 ? item.count : 1 }
   const count = typeof item.count === 'number' && item.count >= 1 ? item.count : 1
-  return { id: item.id, kind: 'card', card: ensureCardRarity(item.card), count }
+  return { id: item.id, kind: 'card', card: syncSavedCard(item.card), count }
 }
 
 /**

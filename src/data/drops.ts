@@ -1,5 +1,6 @@
 import { isLegendCard } from './cardType'
 import type { UnitCardData } from './cards'
+import { STORMWIND_LOOT_EXP, STORMWIND_LOOT_GOLD, buildStormwindDeck } from '../realm/stormwind'
 import { YELLOW_TURBAN_ENEMY_DECK, YELLOW_TURBAN_LOOT_EXP, YELLOW_TURBAN_LOOT_GOLD } from '../realm/yellowTurban'
 
 /** 每只实际上场的敌方单位，掉一张同名卡的概率 */
@@ -41,8 +42,21 @@ export const YELLOW_TURBAN_DROPS: RealmDropTable = {
   ],
 }
 
+/** 暴风城。材料和黄巾之乱相同，卡牌按这一副实际抽到的单位掷 */
+export const STORMWIND_DROPS: RealmDropTable = {
+  gold: STORMWIND_LOOT_GOLD,
+  exp: STORMWIND_LOOT_EXP,
+  unitChance: UNIT_DROP_CHANCE,
+  materials: [
+    { id: 'wood', name: '木材', chance: 0.7, count: 1 },
+    { id: 'stone', name: '石头', chance: 0.5, count: 1 },
+    { id: 'iron-ore', name: '铁矿石', chance: 0.3, count: 1 },
+  ],
+}
+
 const DROP_TABLES: Record<string, RealmDropTable> = {
   'yellow-turban': YELLOW_TURBAN_DROPS,
+  stormwind: STORMWIND_DROPS,
 }
 
 /** 一次通关掷出来的卡牌 */
@@ -102,10 +116,9 @@ export function rollClearLoot(realmId: string, appearedEnemies: readonly UnitCar
  * @returns 叠好的战利品
  */
 export function lootForClears(realmId: string, clears: number, random: () => number = Math.random): RealmLoot {
-  const enemies = realmId === 'yellow-turban' ? YELLOW_TURBAN_ENEMY_DECK : []
   const total: RealmLoot = { gold: 0, exp: 0, cards: [], materials: [] }
   for (let index = 0; index < clears; index += 1) {
-    const once = rollClearLoot(realmId, enemies, random)
+    const once = rollClearLoot(realmId, enemiesForClear(realmId, random), random)
     total.gold += once.gold
     total.exp += once.exp
     once.cards.forEach((drop) => addCard(total.cards, drop))
@@ -125,6 +138,19 @@ export function formatLoot(loot: RealmLoot): string {
   loot.cards.forEach((drop) => parts.push(drop.count > 1 ? `卡牌: ${drop.name} ×${drop.count}` : `卡牌: ${drop.name}`))
   loot.materials.forEach((drop) => parts.push(drop.count > 1 ? `材料: ${drop.name} ×${drop.count}` : `材料: ${drop.name}`))
   return parts.join(' · ')
+}
+
+/**
+ * 挂机时当作上场过的敌方单位。黄巾之乱用固定牌库；暴风城每次通关重新抽一副。
+ *
+ * @param realmId 秘境 id
+ * @param random 暴风城抽牌用。黄巾之乱不会消耗它
+ * @returns 这一次通关要参与掉落的敌方单位
+ */
+function enemiesForClear(realmId: string, random: () => number): readonly UnitCardData[] {
+  if (realmId === 'yellow-turban') return YELLOW_TURBAN_ENEMY_DECK
+  if (realmId === 'stormwind') return buildStormwindDeck(random)
+  return []
 }
 
 /**
