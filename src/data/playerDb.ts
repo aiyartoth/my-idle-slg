@@ -33,6 +33,10 @@ export interface PlayerSave {
   lastSeenAt?: number
   /** 首页底部日志。旧档没有这项 */
   activityLog?: ActivityLogEntry[]
+  /** 熔炉水晶。旧档没有这项 */
+  crystal?: number
+  /** 熔炉当前展示的配方 id。旧档没有这项 */
+  furnaceOffers?: string[]
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null
@@ -105,6 +109,8 @@ export function playerSaveFrom(value: unknown): PlayerSave | null {
     realms: realmMapFrom(save.realms),
     lastSeenAt: isCount(save.lastSeenAt) ? save.lastSeenAt : 0,
     activityLog: activityLogFrom(save.activityLog),
+    crystal: isCount(save.crystal) ? save.crystal : 0,
+    furnaceOffers: furnaceOffersFrom(save.furnaceOffers),
   }
 }
 
@@ -209,6 +215,21 @@ function activityLogFrom(value: unknown): ActivityLogEntry[] {
     entries.push({ at: entry.at, text: entry.text })
   })
   return entries.slice(0, SAVED_ACTIVITY_LIMIT)
+}
+
+/**
+ * 读出熔炉正在展示的配方。不是字符串的丢掉，剩下的交给熔炉再核对。
+ *
+ * @param value 存档里的 furnaceOffers
+ * @returns 配方 id
+ */
+function furnaceOffersFrom(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  const ids: string[] = []
+  value.forEach((item) => {
+    if (typeof item === 'string' && item.length > 0) ids.push(item)
+  })
+  return ids
 }
 
 /**

@@ -1,13 +1,13 @@
 import { useState, useSyncExternalStore } from 'react'
 import { Link } from 'react-router-dom'
 import { DEFAULT_SORT_DIR, sortDeckEntries, type DeckSortDir, type DeckSortKey } from '../data/deckSort'
-import { getPlayerSnapshot, subscribePlayer } from '../data/player'
+import { getPlayerSnapshot, subscribePlayer, unequipDeckCard } from '../data/player'
 import { readCardListBrief, writeCardListBrief } from '../ui/cardListBrief'
 import { CardSortBar } from '../ui/CardSortBar'
 import { UnitCard } from '../ui/UnitCard'
 
 /**
- * 卡组页。点开一张牌进入详情，可以从那里下阵回背包。简略时也一样。
+ * 卡组页。列表上可以直接下阵回背包，点开一张牌仍进入详情。简略时下阵在类型行右侧。
  * 顶部分类固定，四个分类共用一对上下箭头，箭头右侧可以换成简略。列表在下面滚动。
  * 进来时稀有度升序已经生效。详略会记住，从详情返回仍是上次的样子。
  *
@@ -43,10 +43,11 @@ export default function DeckPage() {
         {deck.length === 0 ? <p className="text-sm text-[#c8b49a]">卡组是空的。</p> : null}
         <ul className={brief ? 'grid grid-cols-2 gap-2' : 'flex flex-col gap-3'}>
           {deck.map((entry) => (
-            <li key={entry.uid}>
-              <Link to={`/card/deck/${entry.uid}`} className="block h-full">
-                <UnitCard card={entry.card} brief={brief} />
-              </Link>
+            <li key={entry.uid} className="relative h-full">
+              <Link to={`/card/deck/${entry.uid}`} className="absolute inset-0 z-0 rounded-xl" aria-label={entry.card.name} />
+              <div className="pointer-events-none relative z-10 h-full">
+                <UnitCard card={entry.card} brief={brief} onUnequip={() => unequipDeckCard(entry.uid)} />
+              </div>
             </li>
           ))}
         </ul>

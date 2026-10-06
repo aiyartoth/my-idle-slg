@@ -34,10 +34,21 @@ const TYPE_LINE_BY_ID: Record<string, string> = {
   'flying-machine': '机械-侏儒/飞行器/载具',
   /** 矮人狮鹫骑士 */
   'gryphon-rider': '生物-矮人/狮鹫',
-  /** 英雄：大法师、张角、山丘之王 */
+  /** 英雄：大法师、张角、山丘之王、圣骑士、萨满、德鲁伊、死亡骑士 */
   archmage: '传奇生物-人类/法师',
   'zhang-jiao': '传奇生物-人类/法师',
   'mountain-king': '传奇生物-矮人/战士',
+  paladin: '传奇生物-人类/圣骑士',
+  shaman: '传奇生物-人类/萨满',
+  druid: '传奇生物-人类/德鲁伊',
+  'death-knight': '传奇生物-人类/死亡骑士',
+  /** 战士、猎人、潜行者。暗影牧师、冰霜法师、术士带法师子类，反馈会打到 */
+  warrior: '生物-人类/战士',
+  hunter: '生物-人类/猎人',
+  rogue: '生物-人类/潜行者',
+  'shadow-priest': '生物-人类/法师/牧师',
+  'frost-mage': '生物-人类/法师',
+  warlock: '生物-人类/法师/术士',
   /** 水元素单独成类 */
   'water-elemental': '元素',
   /** 变形术变出来的绵羊 */

@@ -71,9 +71,10 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   /** 天公将军张角、山丘之王 */
   'zhang-jiao': 'orange',
   'mountain-king': 'orange',
-  /** 牧师、飞行器 */
+  /** 牧师、飞行器、猎人 */
   priest: 'green',
   'flying-machine': 'green',
+  hunter: 'green',
   /** 骑士、女巫、破法者、迫击炮小队、攻城器械、狮鹫骑士 */
   knight: 'blue',
   sorceress: 'blue',
@@ -81,6 +82,18 @@ const RARITY_BY_ID: Record<string, CardRarity> = {
   'mortar-team': 'blue',
   'siege-engine': 'blue',
   'gryphon-rider': 'blue',
+  /** 战士、潜行者、暗影牧师、冰霜法师、术士 */
+  warrior: 'blue',
+  rogue: 'blue',
+  'shadow-priest': 'blue',
+  'frost-mage': 'blue',
+  warlock: 'blue',
+  /** 圣骑士、萨满、德鲁伊 */
+  paladin: 'purple',
+  shaman: 'purple',
+  druid: 'purple',
+  /** 死亡骑士 */
+  'death-knight': 'orange',
 }
 
 /**
@@ -188,7 +201,8 @@ export type ArmorSkillKind = 'pierce' | 'spellPierce' | 'plate' | 'ward'
 /**
  * 战斗里按种类识别的技能。
  * 护甲四种、法术免疫和反馈会改伤害。
- * 其余种类各自有行动或移动结算，不写进普攻公式。
+ * 斩杀按目标当前生命加到这一击上。吸血在命中后回复自己。
+ * 其余种类各自有行动、走位或选目标结算，不写进普攻公式。
  */
 export type SkillKind =
   | ArmorSkillKind
@@ -210,6 +224,9 @@ export type SkillKind =
   | 'stormBolt'
   | 'thunderClap'
   | 'bash'
+  | 'execute'
+  | 'leech'
+  | 'taunt'
 
 /** 破甲、法术穿透、重甲、魔甲的展示名和效果句 */
 const ARMOR_SKILL_TEXT: Record<ArmorSkillKind, { name: string; effect: (value: number) => string }> = {

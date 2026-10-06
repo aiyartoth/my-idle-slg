@@ -4,6 +4,7 @@ import BagPage from './pages/BagPage'
 import CardDetailPage from './pages/CardDetailPage'
 import CodexPage from './pages/CodexPage'
 import DeckPage from './pages/DeckPage'
+import FurnacePage from './pages/FurnacePage'
 import GmPage from './pages/GmPage'
 import HomePage from './pages/HomePage'
 import RealmBattlePage from './pages/RealmBattlePage'
@@ -23,6 +24,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="deck" element={<DeckPage />} />
           <Route path="bag" element={<BagPage />} />
+          <Route path="furnace" element={<FurnacePage />} />
           <Route path="gm" element={<GmPage />} />
           <Route path="codex" element={<CodexPage />} />
           <Route path="card/:place/:cardId" element={<CardDetailPage />} />

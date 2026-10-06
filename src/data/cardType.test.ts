@@ -16,6 +16,11 @@ describe('卡面类型行', () => {
     expect(line('山丘之王')).toBe('传奇生物-矮人/战士')
     expect(line('迫击炮小队')).toBe('生物-矮人/炮兵')
     expect(line('狮鹫骑士')).toBe('生物-矮人/狮鹫')
+    expect(line('战士')).toBe('生物-人类/战士')
+    expect(line('圣骑士')).toBe('传奇生物-人类/圣骑士')
+    expect(line('暗影牧师')).toBe('生物-人类/法师/牧师')
+    expect(line('术士')).toBe('生物-人类/法师/术士')
+    expect(line('死亡骑士')).toBe('传奇生物-人类/死亡骑士')
   })
 
   it('图鉴里每张牌都有类型行', () => {
@@ -29,5 +34,10 @@ describe('卡面类型行', () => {
     expect(isMageType(card('法师'))).toBe(true)
     expect(isMageType(card('破法者'))).toBe(false)
     expect(isMageType(card('水元素'))).toBe(false)
+    expect(isMageType(card('冰霜法师'))).toBe(true)
+    expect(isMageType(card('术士'))).toBe(true)
+    expect(isMageType(card('暗影牧师'))).toBe(true)
+    expect(isMageType(card('萨满'))).toBe(false)
+    expect(isMageType(card('死亡骑士'))).toBe(false)
   })
 })

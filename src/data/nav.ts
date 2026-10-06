@@ -3,4 +3,5 @@ export const NAV_ITEMS = [
   { to: '/deck', label: '卡组管理' },
   { to: '/realm', label: '秘境' },
   { to: '/bag', label: '背包' },
+  { to: '/furnace', label: '熔炉' },
 ] as const

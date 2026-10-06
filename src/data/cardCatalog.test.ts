@@ -10,6 +10,8 @@ describe('按名字找卡', () => {
     expect(findCardByName('大法师')).toMatchObject({ rarity: 'purple', race: 'human', profession: '法师' })
     expect(findCardByName('水元素')).toMatchObject({ id: 'water-elemental', rarity: 'white', atk: 2, hp: 4, profession: '元素' })
     expect(findCardByName('山丘之王')).toMatchObject({ rarity: 'orange', race: 'dwarf', profession: '战士' })
+    expect(findCardByName('战士')).toMatchObject({ id: 'warrior', rarity: 'blue', atk: 3, hp: 6 })
+    expect(findCardByName('死亡骑士')).toMatchObject({ id: 'death-knight', rarity: 'orange', profession: '死亡骑士' })
     expect(findCardByName('飞行器')?.race).toBe('gnome')
     expect(findCardByName('女巫')?.race).toBe('highElf')
     expect(findCardByName('')).toBeUndefined()

@@ -21,6 +21,9 @@ const SETTLED_SKILL_KINDS = new Set<CardSkill['kind']>([
   'stormBolt',
   'thunderClap',
   'bash',
+  'execute',
+  'leech',
+  'taunt',
 ])
 
 describe('技能是否进了战斗', () => {
@@ -53,6 +56,16 @@ describe('技能是否进了战斗', () => {
     expect(ALL_CARDS.find((card) => card.id === 'gryphon-rider')?.skills.map((skill) => skill.kind)).toEqual(['fly', 'siege'])
     expect(ALL_CARDS.find((card) => card.id === 'archmage')?.skills.map((skill) => skill.kind)).toEqual(['blizzard', 'bean', 'aura'])
     expect(ALL_CARDS.find((card) => card.id === 'mountain-king')?.skills.map((skill) => skill.kind)).toEqual(['stormBolt', 'thunderClap', 'bash'])
+    expect(ALL_CARDS.find((card) => card.id === 'warrior')?.skills.map((skill) => skill.kind)).toEqual(['charge', 'execute'])
+    expect(ALL_CARDS.find((card) => card.id === 'paladin')?.skills.map((skill) => skill.kind)).toEqual(['taunt', 'plate', 'heal'])
+    expect(ALL_CARDS.find((card) => card.id === 'hunter')?.skills.map((skill) => skill.kind)).toEqual(['pierce', 'splash'])
+    expect(ALL_CARDS.find((card) => card.id === 'rogue')?.skills.map((skill) => skill.kind)).toEqual(['charge', 'bash'])
+    expect(ALL_CARDS.find((card) => card.id === 'shadow-priest')?.skills.map((skill) => skill.kind)).toEqual(['lightning', 'leech'])
+    expect(ALL_CARDS.find((card) => card.id === 'shaman')?.skills.map((skill) => skill.kind)).toEqual(['lightning', 'aura'])
+    expect(ALL_CARDS.find((card) => card.id === 'frost-mage')?.skills.map((skill) => skill.kind)).toEqual(['slow', 'blizzard'])
+    expect(ALL_CARDS.find((card) => card.id === 'warlock')?.skills.map((skill) => skill.kind)).toEqual(['lightning', 'slow'])
+    expect(ALL_CARDS.find((card) => card.id === 'druid')?.skills.map((skill) => skill.kind)).toEqual(['heal', 'innerFire', 'slow'])
+    expect(ALL_CARDS.find((card) => card.id === 'death-knight')?.skills.map((skill) => skill.kind)).toEqual(['taunt', 'leech', 'slow'])
   })
 })
 

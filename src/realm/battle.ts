@@ -529,7 +529,7 @@ export function actingOrder(left: BoardUnit, right: BoardUnit): number {
  * @param log 这一步的文字
  * @param events 这一步的战报
  * @param queue 这一步之后还没行动的队列。重击会从里面拿掉目标
- * @param bonusAtk 冲锋和心灵之火带进这一击的额外攻击
+ * @param bonusAtk 冲锋和心灵之火带进这一击的额外攻击。斩杀另按目标当前生命再加上
  * @returns 扣血之后的兵、大本营生命和剩余队列
  */
 function strikeOnce(
@@ -546,7 +546,9 @@ function strikeOnce(
 ): { units: BoardUnit[]; playerBaseHp: number; enemyBaseHp: number; strike: BattleStrike | null; queue: string[] } {
   const target = pickTarget(actor, units, tiles)
   if (target) {
-    const detail = explainStrike(actor.card, target.card, bonusAtk)
+    const execute = skillValue(actor.card, 'execute')
+    const executeBonus = execute > 0 && target.hp <= execute ? execute : 0
+    const detail = explainStrike(actor.card, target.card, bonusAtk + executeBonus)
     const left = Math.max(0, target.hp - detail.damage)
     log.push(`${actor.card.name} 对 ${target.card.name} 造成 ${detail.damage}`)
     events.push({
@@ -573,6 +575,16 @@ function strikeOnce(
       const neighbors = nextUnits.filter((unit) => unit.side !== actor.side && manhattan(target, unit) === 1)
       const splashed = strikeTargets(actor, neighbors, nextUnits, turn, log, events, { atk: splash, kind: 'physical' })
       nextUnits = splashed.units
+    }
+    const leech = skillValue(actor.card, 'leech')
+    if (leech > 0 && detail.damage > 0) {
+      const gain = Math.min(leech, actor.card.hp - actor.hp)
+      if (gain > 0) {
+        nextUnits = nextUnits.map((unit) => (unit.uid === actor.uid ? { ...unit, hp: unit.hp + gain } : unit))
+        const text = `${actor.card.name} 吸取 ${gain} 点生命`
+        log.push(text)
+        events.push({ turn, kind: 'note', text })
+      }
     }
     return {
       playerBaseHp,
@@ -616,7 +628,7 @@ function strikeOnce(
 }
 
 /**
- * 攻击范围内的敌兵。有警戒时优先打更靠后的，否则打最近的，同样近时先打血少的。
+ * 攻击范围内的敌兵。范围内有嘲讽时只打嘲讽。有警戒时优先打更靠后的，否则打最近的，同样近时先打血少的。
  *
  * @param unit 攻击者
  * @param units 场上所有兵
@@ -624,7 +636,9 @@ function strikeOnce(
  * @returns 要打的敌兵。范围内没有时为 undefined
  */
 function pickTarget(unit: BoardUnit, units: readonly BoardUnit[], tiles: TileKind[][]): BoardUnit | undefined {
-  const foes = units.filter((other) => other.side !== unit.side && manhattan(unit, other) <= unit.card.range)
+  const inRange = units.filter((other) => other.side !== unit.side && manhattan(unit, other) <= unit.card.range)
+  const taunters = inRange.filter((other) => hasSkill(other.card, 'taunt'))
+  const foes = taunters.length > 0 ? taunters : inRange
   const vigilant = hasVigilance(unit.card)
   foes.sort((left, right) => {
     if (vigilant) {
@@ -882,7 +896,8 @@ function lightningAction(state: BattleState, queue: string[], uid: string): Batt
 }
 
 /**
- * 这一步要靠近的格子。普通兵朝敌方大本营走；有警戒且场上有敌人时，朝更靠后的那名敌人走。
+ * 这一步要靠近的格子。场上有敌方嘲讽时朝最近的嘲讽走。
+ * 否则普通兵朝敌方大本营走；有警戒且场上有敌人时，朝更靠后的那名敌人走。
  *
  * @param actor 正在行动的兵
  * @param units 场上的兵
@@ -891,6 +906,11 @@ function lightningAction(state: BattleState, queue: string[], uid: string): Batt
  */
 function routeGoals(actor: BoardUnit, units: readonly BoardUnit[], tiles: TileKind[][]): Coord[] {
   const baseKind = actor.side === 'player' ? 'enemyBase' : 'playerBase'
+  const taunters = units.filter((unit) => unit.side !== actor.side && hasSkill(unit.card, 'taunt'))
+  if (taunters.length > 0) {
+    const nearest = [...taunters].sort((left, right) => manhattan(actor, left) - manhattan(actor, right) || left.uid.localeCompare(right.uid))[0]
+    return [{ row: nearest.row, col: nearest.col }]
+  }
   if (!hasVigilance(actor.card)) return cellsOf(tiles, baseKind)
   const foes = units.filter((unit) => unit.side !== actor.side)
   if (foes.length === 0) return cellsOf(tiles, baseKind)

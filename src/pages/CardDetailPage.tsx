@@ -7,6 +7,7 @@ import { UnitCard } from '../ui/UnitCard'
 /**
  * 卡牌详情页。背包里可以上阵，卡组里可以下阵。升级之类的功能以后加在这一页。
  * 背包里用掉一张后留在本页，还有同名牌就继续显示使用。
+ * 数量始终显示，包括只剩 1 张，以及用完后留在本页的 0。
  *
  * @returns 卡牌详情
  */
@@ -50,7 +51,7 @@ export default function CardDetailPage() {
       <div className="mt-3">
         <UnitCard card={shown} />
       </div>
-      {bagItem && bagItem.count > 1 ? <p className="mt-3 text-sm text-[#c8b49a]">数量 {bagItem.count}</p> : null}
+      {!fromDeck ? <p className="mt-3 text-sm text-[#c8b49a]">数量 {bagItem?.kind === 'card' ? bagItem.count : 0}</p> : null}
       {joined ? <JoinedNotice card={joined} /> : null}
       <div className="mt-4">
         {fromDeck ? (

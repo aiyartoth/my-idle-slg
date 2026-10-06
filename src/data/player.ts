@@ -1,6 +1,8 @@
 import { realmName } from '../realm/yellowTurban'
+import { findCardById } from './cardCatalog'
 import { INITIAL_DECK, type UnitCardData } from './cards'
 import { formatLoot, lootForClears, type RealmLoot } from './drops'
+import { crystalForCard, findFurnaceRecipe, FURNACE_OFFER_COUNT, FURNACE_REFRESH_CRYSTAL, rollFurnaceOfferIds, starterFurnaceOfferIds } from './furnace'
 import { IDLE_CAP_MS, idleClearCount, OFFLINE_SETTLE_MS, type SettlementReport } from './idle'
 import { normalizeBagItem, readPlayerSave, stackBagItems, writePlayerSave, type PlayerSave } from './playerDb'
 
@@ -81,9 +83,17 @@ export interface PlayerSnapshot {
   realms: Readonly<Record<string, RealmProgress>>
   /** 新的在前面 */
   activityLog: readonly ActivityLogEntry[]
+  /** 熔炉水晶 */
+  crystal: number
+  /** 熔炉当前展示的配方 id */
+  furnaceOffers: readonly string[]
 }
 
 let gold = STARTING_GOLD
+/** 熔炉水晶。分解卡牌获得，合成和刷新配方时消耗 */
+let crystal = 0
+/** 熔炉当前这批配方。空的表示还没摆出来 */
+let furnaceOffers: string[] = []
 let level = STARTING_LEVEL
 let exp = STARTING_EXP
 let deckSeq = 1
@@ -101,6 +111,8 @@ const settlementListeners = new Set<() => void>()
 let snapshot: PlayerSnapshot = capture()
 /** 存档按顺序写。后一次改动不会被先发出去的写盖掉 */
 let saveQueue: Promise<void> = Promise.resolve()
+/** 读档结束前不写盘。避免开局数据盖掉还没读出来的存档 */
+let persistReady = typeof indexedDB === 'undefined'
 
 /**
  * 大本营生命。等级按每级固定加点，科技和神器以后再传入。
@@ -131,6 +143,15 @@ export function expToNextLevel(adventurerLevel: number): number {
  */
 export function getGold(): number {
   return gold
+}
+
+/**
+ * 当前熔炉水晶。
+ *
+ * @returns 已经到账的水晶
+ */
+export function getCrystal(): number {
+  return crystal
 }
 
 /**
@@ -236,6 +257,71 @@ export function useBagCard(itemId: string): boolean {
   deck = [...deck, { uid: `d${deckSeq++}`, card: item.card }]
   emit()
   return true
+}
+
+/**
+ * 分解背包里的一张卡，换成水晶。卡组里的牌要先下阵。材料不能分解。
+ *
+ * @param itemId 背包道具 id
+ * @returns 这次得到的水晶。分解不了时为 0
+ */
+export function decomposeBagCard(itemId: string): number {
+  const item = bag.find((entry) => entry.id === itemId)
+  if (!item || item.kind !== 'card' || item.count < 1) return 0
+  const gained = crystalForCard(item.card)
+  takeBagCount((entry) => entry.id === itemId, 1)
+  crystal += gained
+  emit()
+  return gained
+}
+
+/**
+ * 第一次打开熔炉时摆出基础的四条配方，不花水晶。已经有一批时不动。
+ */
+export function ensureFurnaceOffers(): void {
+  const known = furnaceOffers.filter((id) => findFurnaceRecipe(id))
+  if (known.length === FURNACE_OFFER_COUNT) {
+    furnaceOffers = known
+    return
+  }
+  furnaceOffers = starterFurnaceOfferIds()
+  emit()
+}
+
+/**
+ * 花水晶重抽一批配方。水晶不够时保持原样。
+ *
+ * @param random 抽签用的随机数，返回 0 到 1
+ * @returns 已经换成新的一批时为 true
+ */
+export function refreshFurnaceOffers(random: () => number = Math.random): boolean {
+  if (crystal < FURNACE_REFRESH_CRYSTAL) return false
+  crystal -= FURNACE_REFRESH_CRYSTAL
+  furnaceOffers = rollFurnaceOfferIds(random, furnaceOffers)
+  emit()
+  return true
+}
+
+/**
+ * 按当前展示的配方合成一张牌，放进背包。不在这批配方里，或材料不够时什么都不扣。
+ *
+ * @param recipeId 配方 id
+ * @returns 合成出的卡。条件不够时为空
+ */
+export function craftFurnaceRecipe(recipeId: string): UnitCardData | null {
+  if (!furnaceOffers.includes(recipeId)) return null
+  const recipe = findFurnaceRecipe(recipeId)
+  const result = recipe ? findCardById(recipe.resultId) : undefined
+  if (!recipe || !result || crystal < recipe.crystal) return null
+  const cardsReady = recipe.cards.every((cost) => bagCount((entry) => entry.kind === 'card' && entry.card.id === cost.cardId) >= cost.count)
+  const materialsReady = recipe.materials.every((cost) => bagCount((entry) => entry.kind === 'material' && entry.materialId === cost.materialId) >= cost.count)
+  if (!cardsReady || !materialsReady) return null
+  crystal -= recipe.crystal
+  recipe.cards.forEach((cost) => takeBagCount((entry) => entry.kind === 'card' && entry.card.id === cost.cardId, cost.count))
+  recipe.materials.forEach((cost) => takeBagCount((entry) => entry.kind === 'material' && entry.materialId === cost.materialId, cost.count))
+  gainCards(result, 1)
+  emit()
+  return result
 }
 
 /**
@@ -425,8 +511,8 @@ export function bagItemLabel(item: BagItem): string {
 export async function loadPlayer(): Promise<void> {
   if (typeof indexedDB === 'undefined') return
   const save = await readPlayerSave()
-  if (!save) return
-  restorePlayer(save)
+  if (save) restorePlayer(save)
+  persistReady = true
 }
 
 /**
@@ -436,6 +522,8 @@ export async function loadPlayer(): Promise<void> {
  */
 export function restorePlayer(save: PlayerSave): void {
   gold = save.gold
+  crystal = save.crystal ?? 0
+  furnaceOffers = keptFurnaceOffers(save.furnaceOffers)
   level = save.level
   exp = save.exp
   deck = save.deck.map((entry) => ({ ...entry }))
@@ -484,7 +572,7 @@ function emit(): void {
  * 把当前进度排队写入 IndexedDB。测试环境和不支持的浏览器里直接跳过。
  */
 function rememberPlayer(): void {
-  if (typeof indexedDB === 'undefined') return
+  if (!persistReady || typeof indexedDB === 'undefined') return
   const save = currentSave()
   saveQueue = saveQueue.then(() => writePlayerSave(save)).catch(() => undefined)
 }
@@ -506,6 +594,8 @@ function currentSave(): PlayerSave {
     realms: structuredClone(realms),
     activityLog: structuredClone(activityLog),
     lastSeenAt,
+    crystal,
+    furnaceOffers: [...furnaceOffers],
   }
 }
 
@@ -532,7 +622,43 @@ function nextSeq(ids: readonly string[], prefix: string, stored: number): number
  * @returns 新的快照
  */
 function capture(): PlayerSnapshot {
-  return { gold, level, exp, expToNext: expToNextLevel(level), baseHp: baseHpFrom(level), deck, bag, realms, activityLog }
+  return { gold, level, exp, expToNext: expToNextLevel(level), baseHp: baseHpFrom(level), deck, bag, realms, activityLog, crystal, furnaceOffers }
+}
+
+/**
+ * 只留下还在配方池里、并且刚好一批的配方。旧档和坏掉的 id 留空，等打开熔炉再摆基础配方。
+ *
+ * @param ids 存档里的配方 id
+ * @returns 可以继续展示的配方
+ */
+function keptFurnaceOffers(ids: readonly string[] | undefined): string[] {
+  const known = (ids ?? []).filter((id) => findFurnaceRecipe(id))
+  return known.length === FURNACE_OFFER_COUNT ? known : []
+}
+
+/**
+ * 背包里符合条件的那一叠有多少个。
+ *
+ * @param match 要找的卡牌或材料
+ * @returns 数量。没有这一叠时为 0
+ */
+function bagCount(match: (item: BagItem) => boolean): number {
+  return bag.find(match)?.count ?? 0
+}
+
+/**
+ * 从背包扣掉若干个。调用前要先确认数量够，这里不够时不动。
+ *
+ * @param match 要扣的那一叠
+ * @param amount 个数
+ * @returns 已经扣掉时为 true
+ */
+function takeBagCount(match: (item: BagItem) => boolean, amount: number): boolean {
+  const stack = bag.find(match)
+  if (!stack || stack.count < amount) return false
+  if (stack.count === amount) bag = bag.filter((item) => item.id !== stack.id)
+  else bag = bag.map((item) => (item.id === stack.id ? { ...item, count: item.count - amount } : item))
+  return true
 }
 
 /**

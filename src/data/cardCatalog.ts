@@ -1,12 +1,14 @@
 import { YELLOW_ARCHER_CARD, YELLOW_INFANTRY_CARD, ZHANG_JIAO_CARD } from '../realm/yellowTurban'
 import { ALLIANCE_CARDS } from './alliance'
 import { BASIC_UNIT_CARDS, TEMPLE_KNIGHT_CARD, type UnitCardData } from './cards'
+import { WOW_CARDS } from './wow'
 
 /** 已经设计的全部卡牌。GM 按名字查找，图鉴也用这份名单 */
 export const ALL_CARDS: readonly UnitCardData[] = [
   ...BASIC_UNIT_CARDS,
   TEMPLE_KNIGHT_CARD,
   ...ALLIANCE_CARDS,
+  ...WOW_CARDS,
   YELLOW_INFANTRY_CARD,
   YELLOW_ARCHER_CARD,
   ZHANG_JIAO_CARD,
@@ -22,4 +24,14 @@ export function findCardByName(name: string): UnitCardData | undefined {
   const trimmed = name.trim()
   if (!trimmed) return undefined
   return ALL_CARDS.find((card) => card.name === trimmed)
+}
+
+/**
+ * 按卡牌 id 找出一张牌。熔炉配方用 id 指向结果和材料卡。
+ *
+ * @param id 卡牌 id
+ * @returns 对应的卡。没有这张牌时为空
+ */
+export function findCardById(id: string): UnitCardData | undefined {
+  return ALL_CARDS.find((card) => card.id === id)
 }

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { YELLOW_ARCHER_CARD } from '../realm/yellowTurban'
+import { YELLOW_ARCHER_CARD, YELLOW_INFANTRY_CARD } from '../realm/yellowTurban'
 import { ensureCardRarity, INFANTRY_CARD } from './cards'
 import { playerSaveFrom } from './playerDb'
 import { IDLE_CAP_MS } from './idle'
-import { ACTIVITY_LOG_LIMIT, addCardToBag, addExp, baseHpFrom, expToNextLevel, formatActivityLine, getPlayerSnapshot, HP_PER_LEVEL, isIdling, noteBattleResult, notePresence, recordRealmClear, restorePlayer, settleOfflineReturn, shouldOfferIdle, startClearedIdle, toggleRealmIdle, unequipDeckCard, useBagCard } from './player'
+import { FURNACE_REFRESH_CRYSTAL } from './furnace'
+import { ACTIVITY_LOG_LIMIT, addCardToBag, addExp, addMaterialToBag, baseHpFrom, craftFurnaceRecipe, decomposeBagCard, ensureFurnaceOffers, expToNextLevel, formatActivityLine, getPlayerSnapshot, HP_PER_LEVEL, isIdling, noteBattleResult, notePresence, recordRealmClear, refreshFurnaceOffers, restorePlayer, settleOfflineReturn, shouldOfferIdle, startClearedIdle, toggleRealmIdle, unequipDeckCard, useBagCard } from './player'
 
 describe('冒险者', () => {
   it('大本营生命按等级加点，科技和神器以后再加', () => {
@@ -122,6 +123,8 @@ describe('冒险者', () => {
     expect(ensureCardRarity({ ...bare, rarity: 'red' }).rarity).toBe('red')
     expect(legacy?.realms).toEqual({})
     expect(legacy?.activityLog).toEqual([])
+    expect(legacy?.crystal).toBe(0)
+    expect(legacy?.furnaceOffers).toEqual([])
     expect(
       playerSaveFrom({
         gold: 1,
@@ -167,5 +170,40 @@ describe('冒险者', () => {
     expect(getPlayerSnapshot().activityLog[0]?.text).toBe('战斗平局')
     for (let index = 0; index < ACTIVITY_LOG_LIMIT; index += 1) noteBattleResult('黄巾之乱', 'lose', null, at)
     expect(getPlayerSnapshot().activityLog).toHaveLength(ACTIVITY_LOG_LIMIT)
+  })
+
+  it('分解背包卡得到水晶，合成按配方扣卡、材料和水晶', () => {
+    ensureFurnaceOffers()
+    const infantry = addCardToBag(INFANTRY_CARD)
+    expect(decomposeBagCard(infantry.id)).toBe(1)
+    expect(getPlayerSnapshot().crystal).toBeGreaterThanOrEqual(1)
+    expect(decomposeBagCard('missing')).toBe(0)
+    const beforeCrystal = getPlayerSnapshot().crystal
+    addCardToBag(INFANTRY_CARD)
+    addMaterialToBag('iron-ore', '铁矿石', 10)
+    expect(craftFurnaceRecipe('heavy-infantry')?.name).toBe('重甲步兵')
+    expect(getPlayerSnapshot().bag.some((item) => item.kind === 'card' && item.card.id === 'heavy-infantry')).toBe(true)
+    expect(getPlayerSnapshot().crystal).toBe(beforeCrystal)
+    const short = addCardToBag(INFANTRY_CARD)
+    expect(craftFurnaceRecipe('heavy-infantry')).toBeNull()
+    expect(getPlayerSnapshot().bag.find((item) => item.id === short.id)?.count).toBeGreaterThan(0)
+    expect(craftFurnaceRecipe('paladin')).toBeNull()
+  })
+
+  it('黄巾步兵和黄巾弓箭手加水晶可以合成张角，刷新要花水晶', () => {
+    ensureFurnaceOffers()
+    addCardToBag(YELLOW_INFANTRY_CARD, 10)
+    addCardToBag(YELLOW_ARCHER_CARD, 10)
+    while (getPlayerSnapshot().crystal < 100) decomposeBagCard(addCardToBag(INFANTRY_CARD).id)
+    const before = getPlayerSnapshot().crystal
+    expect(craftFurnaceRecipe('zhang-jiao')?.name).toBe('天公将军张角')
+    expect(getPlayerSnapshot().crystal).toBe(before - 100)
+    while (getPlayerSnapshot().crystal < FURNACE_REFRESH_CRYSTAL) decomposeBagCard(addCardToBag(INFANTRY_CARD).id)
+    const offers = [...getPlayerSnapshot().furnaceOffers]
+    const paid = getPlayerSnapshot().crystal
+    expect(refreshFurnaceOffers(() => 0.99)).toBe(true)
+    expect(getPlayerSnapshot().crystal).toBe(paid - FURNACE_REFRESH_CRYSTAL)
+    expect([...getPlayerSnapshot().furnaceOffers].sort().join('|')).not.toBe([...offers].sort().join('|'))
+    expect(refreshFurnaceOffers(() => 0.5)).toBe(false)
   })
 })
